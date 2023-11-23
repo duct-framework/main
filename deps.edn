@@ -1,2 +1,2 @@
-{:deps {org.clojure/clojure {:mvn/version "1.11.1"}}
- :aliases {:main {:main-opts ["-m" "duct.main"]}}}
+{:deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        integrant/integrant {:mvn/version "0.9.0-alpha2"}}}

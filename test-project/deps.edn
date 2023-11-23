@@ -1,0 +1,2 @@
+{:deps {org.duct-framework/main {:local/root ".."}}
+ :aliases {:duct {:main-opts ["-m" "duct.main"]}}}
