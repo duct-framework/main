@@ -1,1 +1,4 @@
-{:test-project/hello {:name "World"}}
+{:vars
+ {NAME {:default "World"}}
+ :system
+ {:test-project/hello {:name NAME}}}
