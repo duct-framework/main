@@ -1,5 +1,6 @@
 (ns duct.main
   (:require [clojure.walk :as walk]
+            [clojure.tools.cli :as cli]
             [integrant.core :as ig]))
 
 (defn- default-init-fn [k]
@@ -27,8 +28,18 @@
       (ig/prep)
       (ig/init)))
 
-(defn -main [& _args]
-  (-> (slurp "duct.edn")
-      (ig/read-string)
-      (bind-vars)
-      (init)))
+(def cli-options
+  [["-h" "--help"]])
+
+(defn- print-help [{:keys [summary]}]
+  (println "Usage:\n\tclj -M:duct")
+  (println (str "Options:\n" summary)))
+
+(defn -main [& args]
+  (let [opts (cli/parse-opts args cli-options)]
+    (if (-> opts :options :help)
+      (print-help opts)
+      (-> (slurp "duct.edn")
+          (ig/read-string)
+          (bind-vars)
+          (init)))))

@@ -1,2 +1,3 @@
 {:deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        org.clojure/tools.cli {:mvn/version "1.0.219"}
         integrant/integrant {:mvn/version "0.9.0-alpha2"}}}
