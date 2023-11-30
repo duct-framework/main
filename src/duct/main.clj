@@ -13,6 +13,17 @@
 (defmethod ig/init-key :default [k v]
   ((default-init-fn k) v))
 
+(defn- deep-merge [a b]
+  (merge-with #(if (and (map? %1) (map? %2))
+                 (deep-merge %1 %2)
+                 %2)
+              a b))
+
+(defn- merge-profiles [{:keys [profiles] :as config} profile-keys]
+  (reduce #(deep-merge %1 (profiles %2))
+          (dissoc config :profiles)
+          profile-keys))
+
 (defn- get-env-var [sym {:keys [default]}]
   (or (System/getenv (name sym)) default))
 
@@ -28,8 +39,13 @@
       (ig/prep)
       (ig/init)))
 
+(defn- parse-concatenated-keywords [s]
+  (map keyword (re-seq #"(?<=:).*?(?=:|$)" s)))
+
 (def cli-options
-  [["-h" "--help"]])
+  [["-p" "--profiles PROFILES" "A concatenated list of profile keys"
+    :parse-fn parse-concatenated-keywords]
+   ["-h" "--help"]])
 
 (defn- print-help [{:keys [summary]}]
   (println "Usage:\n\tclj -M:duct")
@@ -41,5 +57,6 @@
       (print-help opts)
       (-> (slurp "duct.edn")
           (ig/read-string)
+          (merge-profiles (-> opts :options :profiles))
           (bind-vars)
           (init)))))
