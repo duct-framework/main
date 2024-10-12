@@ -1,6 +1,2 @@
-{:vars
- {NAME {:default "World"}}
- :system
- {:test-project/hello {:name NAME}}
- :profiles
- {:dev {:vars {NAME {:default "Test"}}}}}
+{:system
+ {:test-project/hello {:name "World"}}}
