@@ -1,6 +1,16 @@
 (ns duct.main
   (:require [clojure.tools.cli :as cli]
+            [clojure.walk :as walk]
             [integrant.core :as ig]))
+
+(defn- bind-symbol [coll sym opts]
+  (let [val (:default opts)]
+    (walk/postwalk #(if (= sym %) val %) coll)))
+
+(defn- bind [{:keys [params] :as config} profiles]
+  (-> config
+      (ig/deprofile profiles)
+      (update :system #(reduce-kv bind-symbol % params))))
 
 (defn- init [{:keys [system]} profiles]
   (ig/load-hierarchy)
@@ -25,6 +35,8 @@
   (let [opts (cli/parse-opts args cli-options)]
     (if (-> opts :options :help)
       (print-help opts)
-      (-> (slurp "duct.edn")
-          (ig/read-string)
-          (init (-> opts :options :profiles))))))
+      (let [profiles (-> opts :options :profiles)]
+        (-> (slurp "duct.edn")
+            (ig/read-string)
+            (bind profiles)
+            (init profiles))))))
