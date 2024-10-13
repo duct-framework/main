@@ -16,6 +16,9 @@
       (ig/bind (resolve-vars vars))
       (ig/init)))
 
+(defn- halt-on-shutdown [system]
+  (.addShutdownHook (Runtime/getRuntime) (Thread. #(ig/halt! system))))
+
 (defn- parse-concatenated-keywords [s]
   (map keyword (re-seq #"(?<=:).*?(?=:|$)" s)))
 
@@ -35,4 +38,5 @@
       (let [profiles (-> opts :options :profiles)]
         (-> (slurp "duct.edn")
             (ig/read-string)
-            (init profiles))))))
+            (init profiles)
+            (doto halt-on-shutdown))))))
