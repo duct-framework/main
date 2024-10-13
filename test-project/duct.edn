@@ -1,4 +1,5 @@
 {:params
- {name {:default "World"}}
+ {name {:env USERNAME, :default "World"}}
  :system
- {:test-project/hello {:name name}}}
+ {:duct.logger.simple/stdout {}
+  :test-project/hello {:logger #ig/ref :duct/logger, :name name}}}

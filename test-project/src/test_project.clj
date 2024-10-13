@@ -1,4 +1,5 @@
-(ns test-project)
+(ns test-project
+  (:require [duct.logger :as log]))
 
-(defn hello [{:keys [name]}]
-  (println "Hello" name))
+(defn hello [{:keys [logger name]}]
+  (log/info logger ::greet {:name name}))

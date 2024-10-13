@@ -1,2 +1,3 @@
-{:deps {org.duct-framework/main {:local/root ".."}}
+{:deps {org.duct-framework/main {:local/root ".."}
+        org.duct-framework/logger.simple {:mvn/version "0.1.0"}}
  :aliases {:duct {:main-opts ["-m" "duct.main"]}}}

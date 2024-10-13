@@ -3,8 +3,11 @@
             [clojure.walk :as walk]
             [integrant.core :as ig]))
 
-(defn- bind-symbol [coll sym opts]
-  (let [val (:default opts)]
+(defn- resolve-param [{:keys [env default]}]
+  (or (System/getenv (str env)) default))
+
+(defn- bind-symbol [coll sym param-opts]
+  (let [val (resolve-param param-opts)]
     (walk/postwalk #(if (= sym %) val %) coll)))
 
 (defn- bind [{:keys [params] :as config} profiles]
