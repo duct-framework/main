@@ -1,25 +1,19 @@
 (ns duct.main
   (:require [clojure.tools.cli :as cli]
-            [clojure.walk :as walk]
             [integrant.core :as ig]))
 
-(defn- resolve-param [{:keys [env default]}]
+(defn- var-value [{:keys [env default]}]
   (or (System/getenv (str env)) default))
 
-(defn- bind-symbol [coll sym param-opts]
-  (let [val (resolve-param param-opts)]
-    (walk/postwalk #(if (= sym %) val %) coll)))
+(defn- resolve-vars [params]
+  (into {} (reduce-kv #(assoc %1 %2 (var-value %3)) {} params)))
 
-(defn- bind [{:keys [params] :as config} profiles]
-  (-> config
-      (ig/deprofile profiles)
-      (update :system #(reduce-kv bind-symbol % params))))
-
-(defn- init [{:keys [system]} profiles]
+(defn- init [{:keys [system vars]} profiles]
   (ig/load-hierarchy)
   (-> (doto system ig/load-namespaces)
       (ig/expand (ig/deprofile profiles))
       (ig/deprofile profiles)
+      (ig/bind (resolve-vars vars))
       (ig/init)))
 
 (defn- parse-concatenated-keywords [s]
@@ -41,5 +35,4 @@
       (let [profiles (-> opts :options :profiles)]
         (-> (slurp "duct.edn")
             (ig/read-string)
-            (bind profiles)
             (init profiles))))))
