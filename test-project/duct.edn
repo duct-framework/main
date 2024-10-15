@@ -1,5 +1,5 @@
 {:vars
- {name {:env USERNAME, :default "World"}}
+ {name {:env USERNAME, :arg name, :default "World"}}
  :system
  {:duct.logger.simple/stdout {}
   :test-project/hello {:logger #ig/ref :duct/logger
