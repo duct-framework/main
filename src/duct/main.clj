@@ -26,6 +26,12 @@
 (defn- parse-concatenated-keywords [s]
   (map keyword (re-seq #"(?<=:).*?(?=:|$)" s)))
 
+(defn- find-annotated-vars [{:keys [system]}]
+  (ig/load-annotations)
+  (->> (keys system)
+       (map (comp :duct/vars ig/describe))
+       (apply merge)))
+
 (def default-cli-options
   [["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
@@ -37,7 +43,7 @@
       ~(str "--" arg " " (str/upper-case arg))
       ~@(when doc [doc])]))
 
-(defn- cli-options [{:keys [vars]}]
+(defn- cli-options [vars]
   (into default-cli-options (keep var->cli-option) (vals vars)))
 
 (defn- print-help [{:keys [summary]}]
@@ -46,7 +52,8 @@
 
 (defn -main [& args]
   (let [config (ig/read-string (slurp "duct.edn"))
-        opts   (cli/parse-opts args (cli-options config))]
+        vars   (merge (find-annotated-vars config) (:vars config))
+        opts   (cli/parse-opts args (cli-options vars))]
     (if (-> opts :options :help)
       (print-help opts)
       (-> config

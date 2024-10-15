@@ -1,0 +1,2 @@
+{:test-project/hello
+ {:duct/vars {test {:arg test :default "foo"}}}}
