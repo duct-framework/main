@@ -3,6 +3,14 @@
             [clojure.string :as str]
             [integrant.core :as ig]))
 
+(def ^:dynamic *verbose* false)
+
+(defn- verbose [s]
+  (when *verbose* (binding [*err* *out*] (println "»" s))))
+
+(defn- ->verbose [x s]
+  (verbose s) x)
+
 (defn- var-value [{:keys [env arg default]} opts]
   (or (opts (keyword arg))
       (System/getenv (str env))
@@ -12,16 +20,23 @@
   (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
 
 (defn- init [{:keys [system vars]} {:keys [profiles] :as opts}]
+  (verbose "Loading keyword hierarchy and namespaces")
+  (ig/load-hierarchy)
+  (ig/load-namespaces system)
   (let [opts (dissoc opts :profiles :help)]
-    (ig/load-hierarchy)
-    (-> (doto system ig/load-namespaces)
+    (verbose "Preparing configuration")
+    (-> system
         (ig/expand (ig/deprofile profiles))
         (ig/deprofile profiles)
         (ig/bind (resolve-vars vars opts))
+        (->verbose "Initiating system")
         (ig/init))))
 
 (defn- halt-on-shutdown [system]
-  (.addShutdownHook (Runtime/getRuntime) (Thread. #(ig/halt! system))))
+  (.addShutdownHook (Runtime/getRuntime)
+                    (Thread. (bound-fn []
+                               (verbose "Halting system")
+                               (ig/halt! system)))))
 
 (defn- parse-concatenated-keywords [s]
   (map keyword (re-seq #"(?<=:).*?(?=:|$)" s)))
@@ -35,6 +50,7 @@
 (def default-cli-options
   [["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
+   ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"]])
 
 (defn- var->cli-option [{:keys [arg doc]}]
@@ -54,8 +70,10 @@
   (let [config (ig/read-string (slurp "duct.edn"))
         vars   (merge (find-annotated-vars config) (:vars config))
         opts   (cli/parse-opts args (cli-options vars))]
-    (if (-> opts :options :help)
-      (print-help opts)
-      (-> config
-          (init (:options opts))
-          (doto halt-on-shutdown)))))
+    (binding [*verbose* (-> opts :options :verbose)]
+      (verbose "Loaded configuration from: duct.edn")
+      (if (-> opts :options :help)
+        (print-help opts)
+        (-> config
+            (init (:options opts))
+            (doto halt-on-shutdown))))))
