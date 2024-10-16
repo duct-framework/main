@@ -8,9 +8,6 @@
 (defn- verbose [s]
   (when *verbose* (binding [*err* *out*] (println "»" s))))
 
-(defn- ->verbose [x s]
-  (verbose s) x)
-
 (defn- var-value [{:keys [env arg default]} opts]
   (or (opts (keyword arg))
       (System/getenv (str env))
@@ -19,18 +16,21 @@
 (defn- resolve-vars [vars opts]
   (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
 
-(defn- init [{:keys [system vars]} {:keys [profiles] :as opts}]
+(defn- prep [{:keys [system vars]} {:keys [profiles] :as opts}]
   (verbose "Loading keyword hierarchy and namespaces")
   (ig/load-hierarchy)
   (ig/load-namespaces system)
+  (verbose "Preparing configuration")
   (let [opts (dissoc opts :profiles :help)]
-    (verbose "Preparing configuration")
     (-> system
         (ig/expand (ig/deprofile profiles))
         (ig/deprofile profiles)
-        (ig/bind (resolve-vars vars opts))
-        (->verbose "Initiating system")
-        (ig/init))))
+        (ig/bind (resolve-vars vars opts)))))
+
+(defn- init [config options]
+  (let [prepped-config (prep config options)]
+    (verbose "Initiating system")
+    (ig/init prepped-config)))
 
 (defn- halt-on-shutdown [system]
   (.addShutdownHook (Runtime/getRuntime)
@@ -51,6 +51,7 @@
   [["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
    ["-v" "--verbose" "Enable verbose logging"]
+   ["-s" "--show"    "Print out the expanded configuration"]
    ["-h" "--help"]])
 
 (defn- var->cli-option [{:keys [arg doc]}]
@@ -72,8 +73,12 @@
         opts   (cli/parse-opts args (cli-options vars))]
     (binding [*verbose* (-> opts :options :verbose)]
       (verbose "Loaded configuration from: duct.edn")
-      (if (-> opts :options :help)
+      (cond
+        (-> opts :options :help)
         (print-help opts)
+        (-> opts :options :show)
+        (prn (prep config (:options opts)))
+        :else
         (-> config
             (init (:options opts))
             (doto halt-on-shutdown))))))
