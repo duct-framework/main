@@ -1,13 +1,17 @@
 (ns duct.main
-  (:require [clojure.tools.cli :as cli]
+  (:require [clojure.java.io :as io]
+            [clojure.tools.cli :as cli]
             [clojure.string :as str]
             [duct.pprint :as pp]
             [integrant.core :as ig]))
 
 (def ^:dynamic *verbose* false)
 
+(defn- printerr [& args]
+  (binding [*err* *out*] (apply println args)))
+
 (defn- verbose [s]
-  (when *verbose* (binding [*err* *out*] (println "»" s))))
+  (when *verbose* (printerr "»" s)))
 
 (defn- var-value [{:keys [env arg default]} opts]
   (or (opts (keyword arg))
@@ -49,10 +53,11 @@
        (apply merge)))
 
 (def default-cli-options
-  [["-p" "--profiles PROFILES" "A concatenated list of profile keys"
+  [[nil  "--init" "Create a blank duct.edn config file"]
+   ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
-   ["-v" "--verbose" "Enable verbose logging"]
    ["-s" "--show"    "Print out the expanded configuration"]
+   ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"]])
 
 (defn- var->cli-option [{:keys [arg doc]}]
@@ -68,8 +73,21 @@
   (println "Usage:\n\tclj -M:duct")
   (println (str "Options:\n" summary)))
 
+(def ^:private blank-config-string
+  "{:system {}}\n")
+
+(defn- init-config [filename]
+  (let [f (io/file filename)]
+    (if (.exists f)
+      (do (printerr filename "already exists") (System/exit 1))
+      (do (spit f blank-config-string) (printerr "Created" filename)))))
+
+(defn- read-config [filename]
+  (let [f (io/file filename)]
+    (if (.exists f) (ig/read-string (slurp f)) {})))
+
 (defn -main [& args]
-  (let [config (ig/read-string (slurp "duct.edn"))
+  (let [config (read-config "duct.edn")
         vars   (merge (find-annotated-vars config) (:vars config))
         opts   (cli/parse-opts args (cli-options vars))]
     (binding [*verbose* (-> opts :options :verbose)]
@@ -77,6 +95,8 @@
       (cond
         (-> opts :options :help)
         (print-help opts)
+        (-> opts :options :init)
+        (init-config "duct.edn")
         (-> opts :options :show)
         (pp/pprint (prep config (:options opts)))
         :else
