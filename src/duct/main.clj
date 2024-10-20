@@ -13,9 +13,17 @@
 (defn- verbose [s]
   (when *verbose* (printerr "»" s)))
 
-(defn- var-value [{:keys [env arg default]} opts]
+(defmulti coerce (fn [_value type] type))
+(defmethod coerce :int [n _] (Long/parseLong n))
+(defmethod coerce :str [s _] s)
+
+(defn- get-env [env type]
+  (some-> (System/getenv (str env))
+          (cond-> type (coerce type))))
+
+(defn- var-value [{:keys [arg env type default]} opts]
   (or (opts (keyword arg))
-      (System/getenv (str env))
+      (get-env env type)
       default))
 
 (defn- resolve-vars [vars opts]
@@ -60,11 +68,12 @@
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"]])
 
-(defn- var->cli-option [{:keys [arg doc]}]
+(defn- var->cli-option [{:keys [arg doc type]}]
   (when arg
     `[nil
       ~(str "--" arg " " (str/upper-case arg))
-      ~@(when doc [doc])]))
+      ~@(when doc [doc])
+      ~@(when type [:parse-fn #(coerce % type)])]))
 
 (defn- cli-options [vars]
   (into default-cli-options (keep var->cli-option) (vals vars)))
