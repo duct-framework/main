@@ -1,6 +1,7 @@
 (ns duct.main
   (:require [clojure.tools.cli :as cli]
             [clojure.string :as str]
+            [duct.pprint :as pp]
             [integrant.core :as ig]))
 
 (def ^:dynamic *verbose* false)
@@ -77,7 +78,7 @@
         (-> opts :options :help)
         (print-help opts)
         (-> opts :options :show)
-        (prn (prep config (:options opts)))
+        (pp/pprint (prep config (:options opts)))
         :else
         (-> config
             (init (:options opts))
