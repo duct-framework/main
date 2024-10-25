@@ -34,7 +34,8 @@
   (ig/load-hierarchy)
   (ig/load-namespaces system)
   (verbose "Preparing configuration")
-  (let [opts (dissoc opts :profiles :help)]
+  (let [opts     (dissoc opts :profiles :help)
+        profiles (conj (vec profiles) :main)]
     (-> system
         (ig/expand (ig/deprofile profiles))
         (ig/deprofile profiles)
