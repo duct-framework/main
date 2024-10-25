@@ -43,6 +43,7 @@
 (defn- init [config options]
   (let [prepped-config (prep config options)]
     (verbose "Initiating system")
+    (ig/load-namespaces prepped-config)
     (ig/init prepped-config)))
 
 (defn- halt-on-shutdown [system]
