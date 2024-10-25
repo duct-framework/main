@@ -1,6 +1,6 @@
 {:vars
  {name {:env USERNAME, :arg name, :default "World"}}
  :system
- {:duct.logger.simple/stdout {}
+ {:duct.module/logging {}
   :test-project/hello {:logger #ig/ref :duct/logger
                        :name   #ig/var name}}}
