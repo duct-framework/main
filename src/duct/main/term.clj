@@ -15,14 +15,15 @@
 (def ^:const spinner-complete "✓")
 
 (defn- spinner [message stop?]
-  (print hide-cursor)
-  (loop [chars (cycle spinner-chars)]
-    (when-not @stop?
-      (print (str \return (first chars) message))
-      (flush)
-      (Thread/sleep 100)
-      (recur (rest chars))))
-  (println (str \return spinner-complete message show-cursor)))
+  (binding [*err* *out*]
+    (print hide-cursor)
+    (loop [chars (cycle spinner-chars)]
+      (when-not @stop?
+        (print (str \return (first chars) message))
+        (flush)
+        (Thread/sleep 100)
+        (recur (rest chars))))
+    (println (str \return spinner-complete message show-cursor))))
 
 (defn start-spinner [message]
   (let [stop? (atom false)]
