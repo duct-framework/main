@@ -60,7 +60,10 @@
         (doto halt))))
 
 (defn- start-repl []
-  ((requiring-resolve 'repl-balance.clojure.main/-main)))
+  (let [stop-spinner (term/start-spinner " Loading REPL environment...")
+        repl-main    (requiring-resolve 'repl-balance.clojure.main/-main)]
+    (stop-spinner)
+    (repl-main)))
 
 (defn -main [& args]
   (let [config (read-config "duct.edn")
