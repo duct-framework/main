@@ -14,15 +14,26 @@
 (def ^:const spinner-chars (seq "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"))
 (def ^:const spinner-complete "✓")
 
+(def ^:const reset-color "\u001b[0m")
+(def ^:const green-color "\u001b[32m")
+(def ^:const cyan-color "\u001b[36m")
+
+(def color?
+  (delay (not (boolean (System/getenv "NO_COLOR")))))
+
+(defn colorize [color text]
+  (if @color? (str color text reset-color) text))
+
 (defn- spinner [message stop?]
   (.write *err* hide-cursor)
   (loop [chars (cycle spinner-chars)]
     (when-not @stop?
-      (.write *err* (str "\r" (first chars) message))
+      (.write *err* (str "\r" (colorize cyan-color (first chars)) message))
       (.flush *err*)
       (Thread/sleep 100)
       (recur (rest chars))))
-  (.write *err* (str "\r" spinner-complete message show-cursor "\n"))
+  (.write *err* (str "\r" (colorize green-color spinner-complete)))
+  (.write *err* (str message show-cursor "\n"))
   (.flush *err*))
 
 (defn- start-spinner [message]
