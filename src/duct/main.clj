@@ -1,10 +1,6 @@
 (ns duct.main
-  (:require [clojure.java.io :as io]
-            [clojure.tools.cli :as cli]
-            [clojure.string :as str]
+  (:require [clojure.tools.cli :as cli]
             [duct.main.term :as term]
-            [duct.main.config :as config]
-            [duct.pprint :as pp]
             [integrant.core :as ig]))
 
 (defn- parse-concatenated-keywords [s]
@@ -28,7 +24,7 @@
 (defn- var->cli-option [{:keys [arg doc]}]
   (when arg
     `[nil
-      ~(str "--" arg " " (str/upper-case arg))
+      ~(str "--" arg " " (.toUpperCase (str arg)))
       ~@(when doc [doc])]))
 
 (defn- cli-options [vars]
@@ -41,19 +37,30 @@
 (def ^:private blank-config-string
   "{:system {}}\n")
 
-(defn- init-config [filename]
-  (let [f (io/file filename)]
+(defn- init-config-file [^String filename]
+  (let [f (java.io.File. filename)]
     (if (.exists f)
       (do (term/printerr filename "already exists") (System/exit 1))
       (do (spit f blank-config-string) (term/printerr "Created" filename)))))
 
-(defn- read-config [filename]
-  (let [f (io/file filename)]
+(defn- read-config [^String filename]
+  (let [f (java.io.File. filename)]
     (if (.exists f) (ig/read-string (slurp f)) {})))
 
+(defn- prep-config [config vars options]
+  (let [pprint (requiring-resolve 'duct.pprint/pprint)
+        prep   (requiring-resolve 'duct.main.config/prep)]
+    (pprint (prep config vars options))))
+
+(defn- init-config [config vars options]
+  (let [init (requiring-resolve 'duct.main.config/init)
+        halt (requiring-resolve 'duct.main.config/halt-on-shutdown)]
+    (-> config
+        (init vars options)
+        (doto halt))))
+
 (defn- start-repl []
-  (require '[repl-balance.clojure.main])
-  (eval '(repl-balance.clojure.main/-main)))
+  ((requiring-resolve 'repl-balance.clojure.main/-main)))
 
 (defn -main [& args]
   (let [config (read-config "duct.edn")
@@ -65,12 +72,10 @@
         (-> opts :options :help)
         (print-help opts)
         (-> opts :options :init)
-        (init-config "duct.edn")
+        (init-config-file "duct.edn")
         (-> opts :options :show)
-        (pp/pprint (config/prep config vars (:options opts)))
+        (prep-config config vars (:options opts))
         (-> opts :options :repl)
         (start-repl)
         :else
-        (-> config
-            (config/init vars (:options opts))
-            (doto config/halt-on-shutdown))))))
+        (init-config config vars (:options opts))))))
