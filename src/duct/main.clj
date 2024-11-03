@@ -29,7 +29,7 @@
 (defn- resolve-vars [vars opts]
   (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
 
-(defn- prep [{:keys [system vars]} {:keys [profiles] :as opts}]
+(defn- prep [{:keys [system]} vars {:keys [profiles] :as opts}]
   (verbose "Loading keyword hierarchy and namespaces")
   (ig/load-hierarchy)
   (ig/load-namespaces system)
@@ -41,8 +41,8 @@
         (ig/deprofile profiles)
         (ig/bind (resolve-vars vars opts)))))
 
-(defn- init [config options]
-  (let [prepped-config (prep config options)]
+(defn- init [config vars options]
+  (let [prepped-config (prep config vars options)]
     (verbose "Initiating system")
     (ig/load-namespaces prepped-config)
     (ig/init prepped-config)))
@@ -109,8 +109,8 @@
         (-> opts :options :init)
         (init-config "duct.edn")
         (-> opts :options :show)
-        (pp/pprint (prep config (:options opts)))
+        (pp/pprint (prep config vars (:options opts)))
         :else
         (-> config
-            (init (:options opts))
+            (init vars (:options opts))
             (doto halt-on-shutdown))))))
