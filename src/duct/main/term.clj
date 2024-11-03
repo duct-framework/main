@@ -15,17 +15,33 @@
 (def ^:const spinner-complete "✓")
 
 (defn- spinner [message stop?]
-  (binding [*err* *out*]
-    (print hide-cursor)
-    (loop [chars (cycle spinner-chars)]
-      (when-not @stop?
-        (print (str \return (first chars) message))
-        (flush)
-        (Thread/sleep 100)
-        (recur (rest chars))))
-    (println (str \return spinner-complete message show-cursor))))
+  (.write *err* hide-cursor)
+  (loop [chars (cycle spinner-chars)]
+    (when-not @stop?
+      (.write *err* (str "\r" (first chars) message))
+      (.flush *err*)
+      (Thread/sleep 100)
+      (recur (rest chars))))
+  (.write *err* (str "\r" spinner-complete message show-cursor "\n"))
+  (.flush *err*))
 
-(defn start-spinner [message]
+(defn- start-spinner [message]
   (let [stop? (atom false)]
     (.start (Thread. #(spinner message stop?)))
     #(reset! stop? true)))
+
+(defn with-spinner-fn [message f]
+  (let [stop-spinner (start-spinner message)]
+     (try (f) (finally (stop-spinner)))))
+
+(defn buffer-stdout-fn [f]
+  (let [buffer (java.io.ByteArrayOutputStream.)
+        writer (java.io.OutputStreamWriter. buffer)]
+    (try
+      (with-redefs-fn {#'*out* writer} f)
+      (finally
+        (Thread/sleep 100)
+        (print (String. (.toByteArray buffer)))))))
+
+(defmacro with-spinner [message & body]
+  `(buffer-stdout-fn (fn [] (with-spinner-fn ~message (fn [] ~@body)))))

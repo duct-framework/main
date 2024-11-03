@@ -53,17 +53,16 @@
     (pprint (prep config vars options))))
 
 (defn- init-config [config vars options]
-  (let [init (requiring-resolve 'duct.main.config/init)
-        halt (requiring-resolve 'duct.main.config/halt-on-shutdown)]
-    (-> config
-        (init vars options)
-        (doto halt))))
+  (term/with-spinner " Initiating system..."
+    (let [init (requiring-resolve 'duct.main.config/init)
+          halt (requiring-resolve 'duct.main.config/halt-on-shutdown)]
+      (-> config
+          (init vars options)
+          (doto halt)))))
 
 (defn- start-repl []
-  (let [stop-spinner (term/start-spinner " Loading REPL environment...")
-        repl-main    (requiring-resolve 'repl-balance.clojure.main/-main)]
-    (stop-spinner)
-    (repl-main)))
+  ((term/with-spinner " Loading REPL environment..."
+     (requiring-resolve 'repl-balance.clojure.main/-main))))
 
 (defn -main [& args]
   (let [config (read-config "duct.edn")
