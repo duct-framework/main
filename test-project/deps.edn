@@ -1,3 +1,6 @@
 {:deps {org.duct-framework/main {:local/root ".."}
-        org.duct-framework/module.logging {:mvn/version "0.6.0"}}
+        org.duct-framework/module.logging {:mvn/version "0.6.0"}
+        org.duct-framework/module.web {:mvn/version "0.8.1"}
+        org.duct-framework/router.reitit {:mvn/version "0.1.0"}
+        org.slf4j/slf4j-nop {:mvn/version "2.0.16"}}
  :aliases {:duct {:main-opts ["-m" "duct.main"]}}}

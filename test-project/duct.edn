@@ -2,5 +2,11 @@
  {name {:env USERNAME, :arg name, :default "World"}}
  :system
  {:duct.module/logging {}
-  :test-project/hello {:logger #ig/ref :duct/logger
-                       :name   #ig/var name}}}
+  :duct.module.web/site {}
+
+  :duct.router/reitit
+  {:routes ["/" {:get #ig/ref :test-project/hello}]}
+
+  :test-project/hello
+  {:logger #ig/ref :duct/logger
+   :name   #ig/var name}}}
