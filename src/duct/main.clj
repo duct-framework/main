@@ -2,56 +2,10 @@
   (:require [clojure.java.io :as io]
             [clojure.tools.cli :as cli]
             [clojure.string :as str]
+            [duct.main.term :as term]
+            [duct.main.config :as config]
             [duct.pprint :as pp]
             [integrant.core :as ig]))
-
-(def ^:dynamic *verbose* false)
-
-(defn- printerr [& args]
-  (binding [*err* *out*] (apply println args)))
-
-(defn- verbose [s]
-  (when *verbose* (printerr "»" s)))
-
-(defmulti coerce (fn [_value type] type))
-(defmethod coerce :int [n _] (Long/parseLong n))
-(defmethod coerce :str [s _] s)
-
-(defn- get-env [env type]
-  (some-> (System/getenv (str env))
-          (cond-> type (coerce type))))
-
-(defn- var-value [{:keys [arg env type default]} opts]
-  (or (opts (keyword arg))
-      (get-env env type)
-      default))
-
-(defn- resolve-vars [vars opts]
-  (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
-
-(defn- prep [{:keys [system]} vars {:keys [profiles] :as opts}]
-  (verbose "Loading keyword hierarchy and namespaces")
-  (ig/load-hierarchy)
-  (ig/load-namespaces system)
-  (verbose "Preparing configuration")
-  (let [opts     (dissoc opts :profiles :help)
-        profiles (conj (vec profiles) :main)]
-    (-> system
-        (ig/expand (ig/deprofile profiles))
-        (ig/deprofile profiles)
-        (ig/bind (resolve-vars vars opts)))))
-
-(defn- init [config vars options]
-  (let [prepped-config (prep config vars options)]
-    (verbose "Initiating system")
-    (ig/load-namespaces prepped-config)
-    (ig/init prepped-config)))
-
-(defn- halt-on-shutdown [system]
-  (.addShutdownHook (Runtime/getRuntime)
-                    (Thread. (bound-fn []
-                               (verbose "Halting system")
-                               (ig/halt! system)))))
 
 (defn- parse-concatenated-keywords [s]
   (map keyword (re-seq #"(?<=:).*?(?=:|$)" s)))
@@ -71,12 +25,11 @@
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"]])
 
-(defn- var->cli-option [{:keys [arg doc type]}]
+(defn- var->cli-option [{:keys [arg doc]}]
   (when arg
     `[nil
       ~(str "--" arg " " (str/upper-case arg))
-      ~@(when doc [doc])
-      ~@(when type [:parse-fn #(coerce % type)])]))
+      ~@(when doc [doc])]))
 
 (defn- cli-options [vars]
   (into default-cli-options (keep var->cli-option) (vals vars)))
@@ -91,8 +44,8 @@
 (defn- init-config [filename]
   (let [f (io/file filename)]
     (if (.exists f)
-      (do (printerr filename "already exists") (System/exit 1))
-      (do (spit f blank-config-string) (printerr "Created" filename)))))
+      (do (term/printerr filename "already exists") (System/exit 1))
+      (do (spit f blank-config-string) (term/printerr "Created" filename)))))
 
 (defn- read-config [filename]
   (let [f (io/file filename)]
@@ -106,18 +59,18 @@
   (let [config (read-config "duct.edn")
         vars   (merge (find-annotated-vars config) (:vars config))
         opts   (cli/parse-opts args (cli-options vars))]
-    (binding [*verbose* (-> opts :options :verbose)]
-      (verbose "Loaded configuration from: duct.edn")
+    (binding [term/*verbose* (-> opts :options :verbose)]
+      (term/verbose "Loaded configuration from: duct.edn")
       (cond
         (-> opts :options :help)
         (print-help opts)
         (-> opts :options :init)
         (init-config "duct.edn")
         (-> opts :options :show)
-        (pp/pprint (prep config vars (:options opts)))
+        (pp/pprint (config/prep config vars (:options opts)))
         (-> opts :options :repl)
         (start-repl)
         :else
         (-> config
-            (init vars (:options opts))
-            (doto halt-on-shutdown))))))
+            (config/init vars (:options opts))
+            (doto config/halt-on-shutdown))))))
