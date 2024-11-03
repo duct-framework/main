@@ -66,6 +66,7 @@
   [[nil  "--init" "Create a blank duct.edn config file"]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
+   ["-r" "--repl"    "Start a command-line REPL"]
    ["-s" "--show"    "Print out the expanded configuration"]
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"]])
@@ -81,7 +82,7 @@
   (into default-cli-options (keep var->cli-option) (vals vars)))
 
 (defn- print-help [{:keys [summary]}]
-  (println "Usage:\n\tclj -M:duct")
+  (println "Usage:\n\tclojure -M:duct")
   (println (str "Options:\n" summary)))
 
 (def ^:private blank-config-string
@@ -97,6 +98,10 @@
   (let [f (io/file filename)]
     (if (.exists f) (ig/read-string (slurp f)) {})))
 
+(defn- start-repl []
+  (require '[repl-balance.clojure.main])
+  (eval '(repl-balance.clojure.main/-main)))
+
 (defn -main [& args]
   (let [config (read-config "duct.edn")
         vars   (merge (find-annotated-vars config) (:vars config))
@@ -110,6 +115,8 @@
         (init-config "duct.edn")
         (-> opts :options :show)
         (pp/pprint (prep config vars (:options opts)))
+        (-> opts :options :repl)
+        (start-repl)
         :else
         (-> config
             (init vars (:options opts))

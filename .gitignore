@@ -2,3 +2,4 @@
 /test-project/.cpcache
 /.clj-kondo
 /.nrepl-port
+.rebel_readline_history
