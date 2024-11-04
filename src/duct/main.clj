@@ -47,27 +47,38 @@
   (let [f (java.io.File. filename)]
     (if (.exists f) (ig/read-string (slurp f)) {})))
 
-(defn- prep-config [config vars options]
+(defn- load-config [filename]
+  (let [config (read-config filename)]
+    (update config :vars #(merge (find-annotated-vars config) %))))
+
+(defn- prep-config [config options]
   (let [pprint (requiring-resolve 'duct.pprint/pprint)
         prep   (requiring-resolve 'duct.main.config/prep)]
-    (pprint (prep config vars options))))
+    (pprint (prep config options))))
 
-(defn- init-config [config vars options]
+(defn- init-config [config options]
   (term/with-spinner " Initiating system..."
     (let [init (requiring-resolve 'duct.main.config/init)
           halt (requiring-resolve 'duct.main.config/halt-on-shutdown)]
       (-> config
-          (init vars options)
+          (init options)
           (doto halt)))))
 
-(defn- start-repl []
+(defn- setup-user-ns [options]
+  (in-ns 'user)
+  (require '[integrant.repl :refer [clear go halt prep init reset reset-all]])
+  (let [set-prep! (requiring-resolve 'integrant.repl/set-prep!)
+        prep-repl (requiring-resolve 'duct.main.config/prep-repl)]
+    (set-prep! (fn [] (prep-repl #(load-config "duct.edn") options)))))
+
+(defn- start-repl [options]
   ((term/with-spinner " Loading REPL environment..."
+     (setup-user-ns options)
      (requiring-resolve 'repl-balance.clojure.main/-main))))
 
 (defn -main [& args]
-  (let [config (read-config "duct.edn")
-        vars   (merge (find-annotated-vars config) (:vars config))
-        opts   (cli/parse-opts args (cli-options vars))]
+  (let [config (load-config "duct.edn")
+        opts   (cli/parse-opts args (cli-options (:vars config)))]
     (binding [term/*verbose* (-> opts :options :verbose)]
       (term/verbose "Loaded configuration from: duct.edn")
       (cond
@@ -76,8 +87,8 @@
         (-> opts :options :init)
         (init-config-file "duct.edn")
         (-> opts :options :show)
-        (prep-config config vars (:options opts))
+        (prep-config config (:options opts))
         (-> opts :options :repl)
-        (start-repl)
+        (start-repl (:options opts))
         :else
-        (init-config config vars (:options opts))))))
+        (init-config config (:options opts))))))

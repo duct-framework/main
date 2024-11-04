@@ -22,20 +22,20 @@
 (defn- resolve-vars [vars opts]
   (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
 
-(defn prep [{:keys [system]} vars {:keys [profiles] :as opts}]
+(defn prep [{:keys [system vars]} {:keys [profiles] :as opts}]
   (term/verbose "Loading keyword hierarchy and namespaces")
   (ig/load-hierarchy)
   (ig/load-namespaces system)
   (term/verbose "Preparing configuration")
-  (let [opts     (dissoc opts :profiles :help)
+  (let [opts     (dissoc opts :profiles :help :init :show :repl)
         profiles (conj (vec profiles) :main)]
     (-> system
         (ig/expand (ig/deprofile profiles))
         (ig/deprofile profiles)
         (ig/bind (resolve-vars vars opts)))))
 
-(defn init [config vars options]
-  (let [prepped-config (prep config vars options)]
+(defn init [config options]
+  (let [prepped-config (prep config options)]
     (term/verbose "Initiating system")
     (ig/load-namespaces prepped-config)
     (ig/init prepped-config)))
@@ -46,3 +46,14 @@
                                (term/verbose "Halting system")
                                (ig/halt! system)))))
 
+(defn prep-repl [get-config {:keys [profiles] :as opts}]
+  (let [{:keys [system vars]} (get-config)]
+    (ig/load-hierarchy)
+    (ig/load-namespaces system)
+    (let [opts     (dissoc opts :profiles :help :init :show :repl)
+          profiles (conj (vec profiles) :repl)]
+      (-> system
+          (ig/expand (ig/deprofile profiles))
+          (ig/deprofile profiles)
+          (ig/bind (resolve-vars vars opts))
+          (doto ig/load-namespaces)))))
