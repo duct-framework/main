@@ -3,3 +3,4 @@
 /.clj-kondo
 /.nrepl-port
 .rebel_readline_history
+/test-project/logs
