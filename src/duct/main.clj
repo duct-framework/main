@@ -76,7 +76,8 @@
 (defn- start-repl [options]
   ((term/with-spinner " Loading REPL environment..."
      (setup-user-ns options)
-     (requiring-resolve 'repl-balance.clojure.main/-main))))
+     (requiring-resolve 'repl-balance.clojure.main/-main)))
+  (System/exit 0))
 
 (defn -main [& args]
   (let [config (load-config "duct.edn")
