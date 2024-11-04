@@ -69,7 +69,9 @@
   (require '[integrant.repl :refer [clear go halt prep init reset reset-all]])
   (let [set-prep! (requiring-resolve 'integrant.repl/set-prep!)
         prep-repl (requiring-resolve 'duct.main.config/prep-repl)]
-    (set-prep! (fn [] (prep-repl #(load-config "duct.edn") options)))))
+    (set-prep! (fn [] (prep-repl #(load-config "duct.edn") options)))
+    (.addShutdownHook (Runtime/getRuntime)
+                      (Thread. (resolve 'integrant.repl/halt)))))
 
 (defn- start-repl [options]
   ((term/with-spinner " Loading REPL environment..."
