@@ -18,9 +18,11 @@ Add the following dependency and alias to your `deps.edn` file:
 
 Then run:
 
+```sh
+clojure -M:duct --init
 ```
-clj -M:duct --init
-```
+
+This will create a minimal `duct.edn` file.
 
 ## Configuration
 
@@ -68,6 +70,33 @@ starts, it looks through the keys in the configuration for annotations
 with the key `:duct/vars`.
 
 [annotations]: https://github.com/weavejester/integrant#annotations
+
+## Command line
+
+You can run your Duct application with:
+
+```sh
+clojure -M:duct
+```
+
+And you can start a development REPL with:
+
+```sh
+clojure -M:duct --repl
+```
+
+For more information on the Duct tool, run:
+
+```sh
+clojure -M:duct --help
+```
+
+It's also recommended that you create a shell alias to make these
+commands briefer:
+
+```sh
+alias duct="clojure -M:duct"
+```
 
 ## License
 
