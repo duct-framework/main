@@ -1,13 +1,5 @@
 (ns duct.main.term)
 
-(def ^:dynamic *verbose* false)
-
-(defn printerr [& args]
-  (binding [*err* *out*] (apply println args)))
-
-(defn verbose [s]
-  (when *verbose* (printerr "»" s)))
-
 (def ^:const show-cursor "\u001B[?25h")
 (def ^:const hide-cursor "\u001B[?25l")
 
@@ -18,11 +10,21 @@
 (def ^:const green-color "\u001b[32m")
 (def ^:const cyan-color "\u001b[36m")
 
+(defn printerr [& args]
+  (binding [*err* *out*] (apply println args)))
+
 (def color?
   (delay (not (boolean (System/getenv "NO_COLOR")))))
 
 (defn colorize [color text]
   (if @color? (str color text reset-color) text))
+
+(def ^:dynamic *verbose* false)
+
+(def verbose-prefix (delay (colorize cyan-color "»")))
+
+(defn verbose [s]
+  (when *verbose* (printerr @verbose-prefix s)))
 
 (defn- spinner [message stop?]
   (.write *err* hide-cursor)
@@ -55,4 +57,6 @@
         (print (String. (.toByteArray buffer)))))))
 
 (defmacro with-spinner [message & body]
-  `(buffer-stdout-fn (fn [] (with-spinner-fn ~message (fn [] ~@body)))))
+  `(if *verbose*
+     (do ~@body)
+     (buffer-stdout-fn (fn [] (with-spinner-fn ~message (fn [] ~@body))))))
