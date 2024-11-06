@@ -13,7 +13,8 @@
        (apply merge)))
 
 (def default-cli-options
-  [[nil  "--init" "Create a blank duct.edn config file"]
+  [["-c" "--cider" "Start an NREPL server with CIDER middleware"]
+   [nil  "--init"  "Create a blank duct.edn config file"]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
    ["-n" "--nrepl"   "Start an NREPL server"]
@@ -92,7 +93,7 @@
         (:init options) (init-config-file "duct.edn")
         (:show options) (prep-config config options)
         :else
-        (do (when (:nrepl options)
+        (do (when (or (:nrepl options) (:cider options))
               ((requiring-resolve 'duct.main.nrepl/start-nrepl) options))
             (cond
               (:repl options) (start-repl options)
