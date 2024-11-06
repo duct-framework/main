@@ -1,7 +1,10 @@
 (ns duct.main.nrepl
-  (:require [nrepl.cmdline :as cli]
+  (:require [duct.main.term :as term]
+            [nrepl.cmdline :as cli]
             [nrepl.server :as nrepl]))
 
 (defn start-nrepl [options]
-  (doto (nrepl/start-server)
-    (cli/save-port-file {})))
+  (let [server (nrepl/start-server)]
+    (term/verbose (str "Started NREPL server on port " (:port server)))
+    (cli/save-port-file server {})
+    server))

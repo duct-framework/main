@@ -81,10 +81,6 @@
      (requiring-resolve 'repl-balance.clojure.main/-main)))
   (System/exit 0))
 
-(defn- start-nrepl [options]
-  (term/verbose "Starting NREPL server")
-  ((requiring-resolve 'duct.main.nrepl/start-nrepl) options))
-
 (defn -main [& args]
   (let [config  (load-config "duct.edn")
         opts    (cli/parse-opts args (cli-options (:vars config)))
@@ -97,7 +93,7 @@
         (:show options) (prep-config config options)
         :else
         (do (when (:nrepl options)
-              (start-nrepl options))
+              ((requiring-resolve 'duct.main.nrepl/start-nrepl) options))
             (cond
               (:repl options) (start-repl options)
               :else           (init-config config options)))))))
