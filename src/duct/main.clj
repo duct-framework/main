@@ -16,6 +16,7 @@
   [[nil  "--init" "Create a blank duct.edn config file"]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
+   ["-n" "--nrepl"   "Start an NREPL server"]
    ["-r" "--repl"    "Start a command-line REPL"]
    ["-s" "--show"    "Print out the expanded configuration"]
    ["-v" "--verbose" "Enable verbose logging"]
@@ -80,19 +81,23 @@
      (requiring-resolve 'repl-balance.clojure.main/-main)))
   (System/exit 0))
 
+(defn- start-nrepl [options]
+  (term/verbose "Starting NREPL server")
+  ((requiring-resolve 'duct.main.nrepl/start-nrepl) options))
+
 (defn -main [& args]
-  (let [config (load-config "duct.edn")
-        opts   (cli/parse-opts args (cli-options (:vars config)))]
+  (let [config  (load-config "duct.edn")
+        opts    (cli/parse-opts args (cli-options (:vars config)))
+        options (:options opts)]
     (binding [term/*verbose* (-> opts :options :verbose)]
       (term/verbose "Loaded configuration from: duct.edn")
       (cond
-        (-> opts :options :help)
-        (print-help opts)
-        (-> opts :options :init)
-        (init-config-file "duct.edn")
-        (-> opts :options :show)
-        (prep-config config (:options opts))
-        (-> opts :options :repl)
-        (start-repl (:options opts))
+        (:help options) (print-help opts)
+        (:init options) (init-config-file "duct.edn")
+        (:show options) (prep-config config options)
         :else
-        (init-config config (:options opts))))))
+        (do (when (:nrepl options)
+              (start-nrepl options))
+            (cond
+              (:repl options) (start-repl options)
+              :else           (init-config config options)))))))
