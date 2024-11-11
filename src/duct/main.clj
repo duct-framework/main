@@ -18,10 +18,11 @@
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
    ["-n" "--nrepl"   "Start an NREPL server"]
+   ["-m" "--main"    "Start the application"]
    ["-r" "--repl"    "Start a command-line REPL"]
-   ["-s" "--show"    "Print out the expanded configuration"]
+   ["-s" "--show"    "Print out the expanded configuration and exit"]
    ["-v" "--verbose" "Enable verbose logging"]
-   ["-h" "--help"]])
+   ["-h" "--help"    "Print this help message and exit"]])
 
 (defn- var->cli-option [{:keys [arg doc]}]
   (when arg
@@ -33,7 +34,7 @@
   (into default-cli-options (keep var->cli-option) (vals vars)))
 
 (defn- print-help [{:keys [summary]}]
-  (println "Usage:\n\tclojure -M:duct")
+  (println "Usage:\n\tclojure -M:duct [--main | --repl]")
   (println (str "Options:\n" summary)))
 
 (def ^:private blank-config-string
@@ -90,11 +91,16 @@
       (term/verbose "Loaded configuration from: duct.edn")
       (cond
         (:help options) (print-help opts)
-        (:init options) (init-config-file "duct.edn")
         (:show options) (prep-config config options)
         :else
-        (do (when (or (:nrepl options) (:cider options))
+        (do (when (and (:main options) (:repl options))
+              (term/printerr "Cannot use --main and --repl options together.")
+              (System/exit 1))
+            (when (:init options)
+              (init-config-file "duct.edn"))
+            (when (or (:nrepl options) (:cider options))
               ((requiring-resolve 'duct.main.nrepl/start-nrepl) options))
             (cond
+              (:main options) (init-config config options)
               (:repl options) (start-repl options)
-              :else           (init-config config options)))))))
+              :else           (print-help opts)))))))
