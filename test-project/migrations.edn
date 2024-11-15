@@ -1,0 +1,3 @@
+[[:create-table counters
+  [remote_addr "TEXT PRIMARY KEY"]
+  [counter "INTEGER DEFAULT 0"]]]
