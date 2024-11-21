@@ -39,9 +39,10 @@
   (.flush *err*))
 
 (defn- start-spinner [message]
-  (let [stop? (atom false)]
-    (.start (Thread. #(spinner message stop?)))
-    #(reset! stop? true)))
+  (let [stop?  (atom false)
+        thread (Thread. #(spinner message stop?))]
+    (.start thread)
+    (fn [] (reset! stop? true) (.join thread))))
 
 (defn with-spinner-fn [message f]
   (let [stop-spinner (start-spinner message)]
@@ -53,7 +54,7 @@
     (try
       (with-redefs-fn {#'*out* writer} f)
       (finally
-        (Thread/sleep 100)
+        (.flush *out*)
         (print (String. (.toByteArray buffer)))))))
 
 (defmacro with-spinner [message & body]
