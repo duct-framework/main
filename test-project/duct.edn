@@ -5,8 +5,7 @@
   :duct.module/sql {}
   :duct.module/web
   {:features #{:site}
-   :routes [["/" {:get #ig/ref :test-project/hello}]]}
+   :handler-opts {:db #ig/ref :duct.database/sql}
+   :routes [["/" {:get :test-project/hello}]]}
 
-  :test-project/hello
-  {:db   #ig/ref :duct.database/sql
-   :name #ig/var name}}}
+  :test-project/hello {:name #ig/var name}}}
