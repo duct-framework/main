@@ -5,3 +5,5 @@
 .rebel_readline_history
 /test-project/logs
 /test-project/*.db
+/pom.xml
+/target
