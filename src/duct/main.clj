@@ -54,7 +54,7 @@
   (let [config (read-config filename)]
     (update config :vars #(merge (find-annotated-vars config) %))))
 
-(defn- prep-config [config options]
+(defn- show-config [config options]
   (let [pprint (requiring-resolve 'duct.pprint/pprint)
         prep   (requiring-resolve 'duct.main.config/prep)]
     (pprint (prep config options))))
@@ -91,7 +91,7 @@
       (term/verbose "Loaded configuration from: duct.edn")
       (cond
         (:help options) (print-help opts)
-        (:show options) (prep-config config options)
+        (:show options) (show-config config options)
         :else
         (do (when (and (:main options) (:repl options))
               (term/printerr "Cannot use --main and --repl options together.")

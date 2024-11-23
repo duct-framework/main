@@ -22,13 +22,13 @@
 (defn- resolve-vars [vars opts]
   (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
 
-(defn prep [{:keys [system vars]} {:keys [profiles] :as opts}]
+(defn prep [{:keys [system vars]} {:keys [profiles repl] :as opts}]
   (term/verbose "Loading keyword hierarchy and namespaces")
   (ig/load-hierarchy)
   (ig/load-namespaces system)
   (term/verbose "Preparing configuration")
-  (let [opts     (dissoc opts :profiles :help :init :show :repl)
-        profiles (conj (vec profiles) :main)]
+  (let [opts     (dissoc opts :profiles :help :init :show :repl :main)
+        profiles (conj (vec profiles) (if repl :repl :main))]
     (-> system
         (ig/expand (ig/deprofile profiles))
         (ig/deprofile profiles)
@@ -50,7 +50,7 @@
   (let [{:keys [system vars]} (get-config)]
     (ig/load-hierarchy)
     (ig/load-namespaces system)
-    (let [opts     (dissoc opts :profiles :help :init :show :repl)
+    (let [opts     (dissoc opts :profiles :help :init :show :repl :main)
           profiles (conj (vec profiles) :repl)]
       (-> system
           (ig/expand (ig/deprofile profiles))
