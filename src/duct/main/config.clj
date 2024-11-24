@@ -6,21 +6,23 @@
 (defmethod coerce :int [n _] (Long/parseLong n))
 (defmethod coerce :str [s _] s)
 
-(defn- get-env [env type]
+(defn- get-env [{:keys [env type]}]
   (some-> (System/getenv (str env))
           (cond-> type (coerce type))))
 
-(defn- get-opt [opts arg type]
+(defn- get-opt [{:keys [arg type]} opts]
   (some-> (opts (keyword arg))
           (cond-> type (coerce type))))
 
-(defn- var-value [{:keys [arg env type default]} opts]
-  (or (get-opt opts arg type)
-      (get-env env type)
-      default))
+(defn- assoc-var-value [opts var-map key var]
+  (let [value (or (get-opt var opts) (get-env var))]
+    (cond
+      (some? value)            (assoc var-map key value)
+      (contains? var :default) (assoc var-map key (:default var))
+      :else                    var-map)))
 
 (defn- resolve-vars [vars opts]
-  (into {} (reduce-kv #(assoc %1 %2 (var-value %3 opts)) {} vars)))
+  (into {} (reduce-kv (partial assoc-var-value opts) {} vars)))
 
 (defn prep [{:keys [system vars]} {:keys [profiles repl] :as opts}]
   (term/verbose "Loading keyword hierarchy and namespaces")
