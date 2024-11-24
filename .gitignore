@@ -6,4 +6,5 @@
 /test-project/logs
 /test-project/*.db
 /pom.xml
+/pom.xml.asc
 /target
