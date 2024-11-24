@@ -3,6 +3,7 @@
             [integrant.core :as ig]))
 
 (defmulti coerce (fn [_value type] type))
+(defmethod coerce :float [x _] (Double/parseDouble x))
 (defmethod coerce :int [n _] (Long/parseLong n))
 (defmethod coerce :str [s _] s)
 
