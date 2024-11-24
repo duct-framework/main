@@ -47,15 +47,3 @@
                     (Thread. (bound-fn []
                                (term/verbose "Halting system")
                                (ig/halt! system)))))
-
-(defn prep-repl [get-config {:keys [profiles] :as opts}]
-  (let [{:keys [system vars]} (get-config)]
-    (ig/load-hierarchy)
-    (ig/load-namespaces system)
-    (let [opts     (dissoc opts :profiles :help :init :show :repl :main)
-          profiles (conj (vec profiles) :repl)]
-      (-> system
-          (ig/expand (ig/deprofile profiles))
-          (ig/deprofile profiles)
-          (ig/bind (resolve-vars vars opts))
-          (doto ig/load-namespaces)))))
