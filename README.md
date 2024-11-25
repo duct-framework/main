@@ -76,7 +76,7 @@ with the key `:duct/vars`.
 You can run your Duct application with:
 
 ```sh
-clojure -M:duct
+clojure -M:duct --main
 ```
 
 And you can start a development REPL with:
