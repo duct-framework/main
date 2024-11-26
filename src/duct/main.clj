@@ -50,9 +50,11 @@
   (let [f (java.io.File. filename)]
     (if (.exists f) (ig/read-string (slurp f)) {})))
 
-(defn- load-config [filename]
-  (let [config (read-config filename)]
-    (update config :vars #(merge (find-annotated-vars config) %))))
+(defn- load-config
+  ([] (load-config "duct.edn"))
+  ([filename]
+   (let [config (read-config filename)]
+     (update config :vars #(merge (find-annotated-vars config) %)))))
 
 (defn- show-config [config options]
   (let [pprint (requiring-resolve 'duct.pprint/pprint)
@@ -67,27 +69,13 @@
           (init options)
           (doto halt)))))
 
-(defn- setup-user-ns [options]
-  (in-ns 'user)
-  (require '[integrant.repl :refer [clear go halt prep init reset reset-all]])
-  (require '[integrant.repl.state :refer [config system]])
-  (let [set-prep!       (requiring-resolve 'integrant.repl/set-prep!)
-        prep            (requiring-resolve 'duct.main.config/prep)
-        load-namespaces (requiring-resolve 'integrant.core/load-namespaces)]
-    (set-prep! #(-> (load-config "duct.edn")
-                    (prep options)
-                    (doto load-namespaces)))
-    (.addShutdownHook (Runtime/getRuntime)
-                      (Thread. (resolve 'integrant.repl/halt)))))
-
 (defn- start-repl [options]
   ((term/with-spinner " Loading REPL environment..."
-     (setup-user-ns options)
-     (requiring-resolve 'repl-balance.clojure.main/-main)))
+     ((requiring-resolve 'duct.main.repl/create-repl) load-config options)))
   (System/exit 0))
 
 (defn -main [& args]
-  (let [config  (load-config "duct.edn")
+  (let [config  (load-config)
         opts    (cli/parse-opts args (cli-options (:vars config)))
         options (:options opts)]
     (binding [term/*verbose* (-> opts :options :verbose)]
