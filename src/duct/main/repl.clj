@@ -19,8 +19,7 @@
   (igrepl/set-prep! #(-> (load-config)
                          (config/prep options)
                          (doto ig/load-namespaces)))
-  (.addShutdownHook (Runtime/getRuntime)
-                    (Thread. (resolve 'igrepl/halt))))
+  (.addShutdownHook (Runtime/getRuntime) (Thread. igrepl/halt)))
 
 (defn- handle-sigint-form []
   `(let [thread# (Thread/currentThread)]
