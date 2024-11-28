@@ -8,7 +8,8 @@
             [repl-balance.clojure.line-reader :as clj-line-reader]
             [repl-balance.clojure.main :as bal-main]
             [repl-balance.clojure.service.local :as clj-service]
-            [repl-balance.jline-api :as jline]))
+            [repl-balance.jline-api :as jline])
+  (:import [org.jline.keymap KeyMap]))
 
 (defn- setup-user-ns [load-config options]
   (in-ns 'user)
@@ -24,19 +25,32 @@
   `(let [thread# (Thread/currentThread)]
      (repl/set-break-handler! (fn [_signal#] (.stop thread#)))))
 
+(def ^:private duct-reset-widget
+  (jline/create-widget
+   (.clear jline/*buffer*)
+   (.write jline/*buffer* "(integrant.repl/reset)")
+   (jline/call-widget "clojure-force-accept-line")
+   true))
+
+(defn- bind-widget [widget-name service key]
+  (jline/key-binding :emacs (str key) widget-name)
+  (jline/apply-key-bindings!)
+  (jline/set-main-key-map! (get service :key-map :emacs)))
+
 (defn- start-repl []
   (bal-core/ensure-terminal
-   (bal-core/with-line-reader
-     (clj-line-reader/create
-      (clj-service/create
-       (when jline/*line-reader* @jline/*line-reader*)))
-     (binding [*out* (jline/safe-terminal-writer jline/*line-reader*)]
-       (println "[Repl balance] Type :repl/help for online help info")
-       (main/repl
-        :eval   (fn [form] (eval `(do ~(handle-sigint-form) ~form)))
-        :print  bal-main/syntax-highlight-prn
-        :prompt (fn [])
-        :read   (bal-main/create-repl-read))))))
+   (let [service (clj-service/create)]
+     (bal-core/with-line-reader (clj-line-reader/create service)
+       (doto "duct-reset-widget"
+         (jline/register-widget duct-reset-widget)
+         (bind-widget service (KeyMap/ctrl \I)))
+       (binding [*out* (jline/safe-terminal-writer jline/*line-reader*)]
+         (println "[Repl balance] Type :repl/help for online help info")
+         (main/repl
+          :eval   (fn [form] (eval `(do ~(handle-sigint-form) ~form)))
+          :print  bal-main/syntax-highlight-prn
+          :prompt (fn [])
+          :read   (bal-main/create-repl-read)))))))
 
 (defn create-repl [load-config options]
   (setup-user-ns load-config options)
