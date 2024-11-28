@@ -28,7 +28,9 @@
 (def ^:private duct-reset-widget
   (jline/create-widget
    (.clear jline/*buffer*)
-   (.write jline/*buffer* "(integrant.repl/reset)")
+   (jline/write (if (= 'user (ns-name *ns*))
+                  "(reset)"
+                  "(integrant.repl/reset)"))
    (jline/call-widget "clojure-force-accept-line")
    true))
 
