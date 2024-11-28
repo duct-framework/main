@@ -50,10 +50,11 @@
 
 (defn with-spinner-fn [message f]
   (let [stop-spinner (start-spinner message)]
-     (try (f) (stop-spinner :complete)
-          (catch Exception ex
-            (stop-spinner :error)
-            (throw ex)))))
+    (try (let [ret (f)]
+           (stop-spinner :complete) ret)
+         (catch Exception ex
+           (stop-spinner :error)
+           (throw ex)))))
 
 (defn buffer-stdout-fn [f]
   (let [buffer (java.io.ByteArrayOutputStream.)
