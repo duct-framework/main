@@ -2,6 +2,7 @@
   (:require [clojure.main :as main]
             [clojure.repl :as repl]
             [duct.main.config :as config]
+            [duct.main.term :as term]
             [integrant.core :as ig]
             [integrant.repl :as igrepl]
             [repl-balance.core :as bal-core]
@@ -39,6 +40,11 @@
   (jline/apply-key-bindings!)
   (jline/set-main-key-map! (get service :key-map :emacs)))
 
+(def help-message
+  (str (term/colorize term/cyan-color "•")
+       " Type :repl/help for REPL help, (go) to initiate the system and (reset)"
+       "\n  to reload modified namespaces and restart the system (hotkey Alt-E)."))
+
 (defn- start-repl []
   (bal-core/ensure-terminal
    (let [service (clj-service/create)]
@@ -47,7 +53,7 @@
          (jline/register-widget duct-reset-widget)
          (bind-widget service (KeyMap/alt \e)))
        (binding [*out* (jline/safe-terminal-writer jline/*line-reader*)]
-         (println "[Repl balance] Type :repl/help for online help info")
+         (println help-message)
          (main/repl
           :eval   (fn [form] (eval `(do ~(handle-sigint-form) ~form)))
           :print  bal-main/syntax-highlight-prn
