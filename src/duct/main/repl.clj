@@ -45,7 +45,7 @@
      (bal-core/with-line-reader (clj-line-reader/create service)
        (doto "duct-reset-widget"
          (jline/register-widget duct-reset-widget)
-         (bind-widget service (KeyMap/ctrl \I)))
+         (bind-widget service (KeyMap/alt \e)))
        (binding [*out* (jline/safe-terminal-writer jline/*line-reader*)]
          (println "[Repl balance] Type :repl/help for online help info")
          (main/repl
