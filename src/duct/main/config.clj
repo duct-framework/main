@@ -41,7 +41,9 @@
   (let [prepped-config (prep config options)]
     (term/verbose "Initiating system")
     (ig/load-namespaces prepped-config)
-    (ig/init prepped-config)))
+    (if-some [keys (:keys options)]
+      (ig/init prepped-config (set keys))
+      (ig/init prepped-config))))
 
 (defn halt-on-shutdown [system]
   (.addShutdownHook (Runtime/getRuntime)

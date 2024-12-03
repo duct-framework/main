@@ -15,6 +15,8 @@
 (def default-cli-options
   [["-c" "--cider" "Start an NREPL server with CIDER middleware"]
    [nil  "--init"  "Create a blank duct.edn config file"]
+   ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
+    :parse-fn parse-concatenated-keywords]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
    ["-n" "--nrepl"   "Start an NREPL server"]
