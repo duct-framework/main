@@ -65,7 +65,7 @@
     (pprint (prep config options))))
 
 (defn- init-config [config options]
-  (term/with-spinner " Initiating system..."
+  (term/with-spinner " Initiating system"
     (let [init (requiring-resolve 'duct.main.config/init)
           halt (requiring-resolve 'duct.main.config/halt-on-shutdown)]
       (-> config
@@ -73,14 +73,14 @@
           (doto halt)))))
 
 (defn- start-repl [options]
-  ((term/with-spinner " Loading REPL environment..."
+  ((term/with-spinner " Loading REPL environment"
      ((requiring-resolve 'duct.main.repl/create-repl) load-config options)))
   (System/exit 0))
 
 (defn- start-nrepl [options]
   (term/with-spinner (if (:cider options)
-                       " Starting nREPL server with CIDER..."
-                       " Starting nREPL server...")
+                       " Starting nREPL server with CIDER"
+                       " Starting nREPL server")
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) options)))
 
 (defn -main [& args]
