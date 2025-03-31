@@ -8,5 +8,5 @@
                  [integrant "0.13.1"]
                  [integrant/repl "0.4.0"]
                  [com.openvest/repl-balance "0.2.114"]
-                 [nrepl "1.3.0"]
-                 [cider/cider-nrepl "0.50.2"]])
+                 [nrepl "1.3.1"]
+                 [cider/cider-nrepl "0.53.2"]])
