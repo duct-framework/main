@@ -36,7 +36,8 @@
   (into default-cli-options (keep var->cli-option) (vals vars)))
 
 (defn- print-help [{:keys [summary]}]
-  (println "Usage:\n\tclojure -M:duct [--main | --repl]")
+  (println (str "Usage:\n\tclojure -M:duct "
+                "[--init | -- cider | --main | --nrepl | --repl]"))
   (println (str "Options:\n" summary)))
 
 (def ^:private blank-config-string
@@ -76,6 +77,13 @@
      ((requiring-resolve 'duct.main.repl/create-repl) load-config options)))
   (System/exit 0))
 
+(defn- start-nrepl [options]
+  (term/with-spinner " Starting nREPL server..."
+    ((requiring-resolve 'duct.main.nrepl/start-nrepl) options)))
+
+(defn- invalid-options? [options]
+  (not (some options [:main :repl :init :nrepl :cider])))
+
 (defn -main [& args]
   (let [config  (load-config)
         opts    (cli/parse-opts args (cli-options (:vars config)))
@@ -92,8 +100,10 @@
             (when (:init options)
               (init-config-file "duct.edn"))
             (when (or (:nrepl options) (:cider options))
-              ((requiring-resolve 'duct.main.nrepl/start-nrepl) options))
+              (start-nrepl options))
             (cond
-              (:main options) (init-config config options)
-              (:repl options) (start-repl options)
-              :else           (print-help opts)))))))
+              (:main options)            (init-config config options)
+              (:repl options)            (start-repl options)
+              (:nrepl options)           (.join (Thread/currentThread))
+              (:cider options)           (.join (Thread/currentThread))
+              (invalid-options? options) (print-help opts)))))))
