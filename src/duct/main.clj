@@ -13,13 +13,13 @@
        (apply merge)))
 
 (def default-cli-options
-  [["-c" "--cider" "Start an NREPL server with CIDER middleware"]
+  [["-c" "--cider" "Add CIDER middleware (used with --nrepl)"]
    [nil  "--init"  "Create a blank duct.edn config file"]
    ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
     :parse-fn parse-concatenated-keywords]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
-   ["-n" "--nrepl"   "Start an NREPL server"]
+   ["-n" "--nrepl"   "Start an nREPL server"]
    ["-m" "--main"    "Start the application"]
    ["-r" "--repl"    "Start a command-line REPL"]
    ["-s" "--show"    "Print out the expanded configuration and exit"]
@@ -37,7 +37,7 @@
 
 (defn- print-help [{:keys [summary]}]
   (println (str "Usage:\n\tclojure -M:duct "
-                "[--init | -- cider | --main | --nrepl | --repl]"))
+                "[--init | --main | --nrepl | --repl]"))
   (println (str "Options:\n" summary)))
 
 (def ^:private blank-config-string
@@ -78,11 +78,10 @@
   (System/exit 0))
 
 (defn- start-nrepl [options]
-  (term/with-spinner " Starting nREPL server..."
+  (term/with-spinner (if (:cider options)
+                       " Starting nREPL server with CIDER..."
+                       " Starting nREPL server...")
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) options)))
-
-(defn- invalid-options? [options]
-  (not (some options [:main :repl :init :nrepl :cider])))
 
 (defn -main [& args]
   (let [config  (load-config)
@@ -99,11 +98,11 @@
               (System/exit 1))
             (when (:init options)
               (init-config-file "duct.edn"))
-            (when (or (:nrepl options) (:cider options))
+            (when (:nrepl options)
               (start-nrepl options))
             (cond
               (:main options)            (init-config config options)
               (:repl options)            (start-repl options)
               (:nrepl options)           (.join (Thread/currentThread))
-              (:cider options)           (.join (Thread/currentThread))
-              (invalid-options? options) (print-help opts)))))))
+              (:init options)            nil
+              :else                      (print-help opts)))))))
