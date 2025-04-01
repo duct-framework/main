@@ -59,9 +59,15 @@
    (let [config (read-config filename)]
      (update config :vars #(merge (find-annotated-vars config) %)))))
 
+(defn- disable-hashp! []
+  (alter-var-root (requiring-resolve 'hashp.config/*disable-hashp*)
+                  (constantly true)))
+
 (defn- show-config [config options]
   (let [pprint (requiring-resolve 'duct.pprint/pprint)
         prep   (requiring-resolve 'duct.main.config/prep)]
+    (disable-hashp!)
+    (require 'hashp.preload)
     (pprint (prep config options))))
 
 (defn- init-config [config options]
@@ -84,9 +90,7 @@
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) load-config options)))
 
 (defn- setup-hashp [options]
-  (when (:main options)
-    (alter-var-root (requiring-resolve 'hashp.config/*disable-hashp*)
-                    (constantly true)))
+  (when (:main options) (disable-hashp!))
   (require 'hashp.preload))
 
 (defn -main [& args]
