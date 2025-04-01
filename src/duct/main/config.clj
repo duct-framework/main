@@ -25,13 +25,16 @@
 (defn- resolve-vars [vars opts]
   (into {} (reduce-kv (partial assoc-var-value opts) {} vars)))
 
-(defn prep [{:keys [system vars]} {:keys [profiles repl] :as opts}]
+(def ^:private base-options
+  [:profiles :help :init :show :repl :nrepl :main :cider])
+
+(defn prep [{:keys [system vars]} {:keys [profiles main] :as opts}]
   (term/verbose "Loading keyword hierarchy and namespaces")
   (ig/load-hierarchy)
   (ig/load-namespaces system)
   (term/verbose "Preparing configuration")
-  (let [opts     (dissoc opts :profiles :help :init :show :repl :main)
-        profiles (conj (vec profiles) (if repl :repl :main))]
+  (let [opts     (dissoc opts base-options)
+        profiles (conj (vec profiles) (if main :main :repl))]
     (-> system
         (ig/expand (ig/deprofile profiles))
         (ig/deprofile profiles)

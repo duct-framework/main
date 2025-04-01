@@ -1,5 +1,6 @@
 (ns duct.main.nrepl
   (:require [duct.main.term :as term]
+            [duct.main.user :as user]
             [nrepl.cmdline :as cli]
             [nrepl.server :as nrepl]))
 
@@ -14,8 +15,10 @@
     (requiring-resolve 'cider.nrepl/cider-nrepl-handler)
     (nrepl/default-handler)))
 
-(defn start-nrepl [options]
+(defn start-nrepl [load-config options]
   (let [server (nrepl/start-server {:handler (nrepl-handler options)})]
     (term/verbose (str "Started nREPL server on port " (:port server)))
     (cli/save-port-file server {})
-    (doto server stop-nrepl-on-shutdown)))
+    (doto server stop-nrepl-on-shutdown)
+    (when-not (:main options)
+      (user/setup-user-ns load-config options))))

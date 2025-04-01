@@ -81,7 +81,7 @@
   (term/with-spinner (if (:cider options)
                        " Starting nREPL server with CIDER"
                        " Starting nREPL server")
-    ((requiring-resolve 'duct.main.nrepl/start-nrepl) options)))
+    ((requiring-resolve 'duct.main.nrepl/start-nrepl) load-config options)))
 
 (defn- setup-hashp [options]
   (when (:main options)
