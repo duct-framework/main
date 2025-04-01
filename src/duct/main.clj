@@ -83,6 +83,12 @@
                        " Starting nREPL server")
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) options)))
 
+(defn- setup-hashp [options]
+  (when (:main options)
+    (alter-var-root (requiring-resolve 'hashp.config/*disable-hashp*)
+                    (constantly true)))
+  (require 'hashp.preload))
+
 (defn -main [& args]
   (let [config  (load-config)
         opts    (cli/parse-opts args (cli-options (:vars config)))
@@ -96,6 +102,8 @@
         (do (when (and (:main options) (:repl options))
               (term/printerr "Cannot use --main and --repl options together.")
               (System/exit 1))
+            (when (or (:main options) (:repl options) (:nrepl options))
+              (setup-hashp options))
             (when (:init options)
               (init-config-file "duct.edn"))
             (when (:nrepl options)

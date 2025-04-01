@@ -18,5 +18,5 @@
        :headers {"Content-Type" "text/html; charset=UTF-8"}
        :body (str "<!DOCTYPE html>\n<html lang=\"en\">"
                   "<head><title>Greet Example</title></head>"
-                  "<body><h1>Hello " name " (count: " counter ")"
+                  "<body><h1>Hello " name " (count: " #p counter ")"
                   "</h1></body></html>")})))
