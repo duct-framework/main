@@ -1,4 +1,4 @@
-(defproject org.duct-framework/main "0.1.6"
+(defproject org.duct-framework/main "0.1.7"
   :description "Command-line tool for running Duct systems"
   :url "https://github.com/duct-framework/main"
   :license {:name "Eclipse Public License"
