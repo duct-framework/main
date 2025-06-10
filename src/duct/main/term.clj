@@ -62,8 +62,8 @@
     (try
       (with-redefs-fn {#'*out* writer} f)
       (finally
-        (.flush *out*)
-        (print (String. (.toByteArray buffer)))))))
+        (print (String. (.toByteArray buffer)))
+        (flush)))))
 
 (defmacro with-spinner [message & body]
   `(if *verbose*
