@@ -17,7 +17,7 @@
 
 (defn start-nrepl [load-config options]
   (let [server (nrepl/start-server {:handler (nrepl-handler options)})]
-    (term/verbose (str "Started nREPL server on port " (:port server)))
+    (println "nREPL server started on port" (:port server))
     (cli/save-port-file server {})
     (doto server stop-nrepl-on-shutdown)
     (when-not (:main options)
