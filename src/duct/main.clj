@@ -1,5 +1,6 @@
 (ns duct.main
   (:require [clojure.tools.cli :as cli]
+            [clojure.java.io :as io]
             [duct.main.term :as term]
             [integrant.core :as ig]))
 
@@ -15,6 +16,7 @@
 (def default-cli-options
   [["-c" "--cider" "Add CIDER middleware (used with --nrepl)"]
    [nil  "--init"  "Create a blank duct.edn config file"]
+   [nil  "--init-cider" "Create a .dir-locals.el Emacs file for CIDER"]
    ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
     :parse-fn parse-concatenated-keywords]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
@@ -43,11 +45,14 @@
 (def ^:private blank-config-string
   "{:system {}}\n")
 
-(defn- init-config-file [^String filename]
+(def ^:private dir-locals-file
+  (delay (slurp (io/resource "duct/main/dir-locals.el"))))
+
+(defn- output-to-file [^String content ^String filename]
   (let [f (java.io.File. filename)]
     (if (.exists f)
       (do (term/printerr filename "already exists") (System/exit 1))
-      (do (spit f blank-config-string) (term/printerr "Created" filename)))))
+      (do (spit f content) (term/printerr "Created" filename)))))
 
 (defn- read-config [^String filename]
   (let [f (java.io.File. filename)]
@@ -109,7 +114,9 @@
             (when (or (:main options) (:repl options) (:nrepl options))
               (setup-hashp options))
             (when (:init options)
-              (init-config-file "duct.edn"))
+              (output-to-file blank-config-string "duct.edn"))
+            (when (:init-cider options)
+              (output-to-file @dir-locals-file ".dir-locals.el"))
             (when (:nrepl options)
               (start-nrepl options))
             (cond
@@ -117,4 +124,5 @@
               (:repl options)            (start-repl options)
               (:nrepl options)           (.join (Thread/currentThread))
               (:init options)            nil
+              (:init-cider options)      nil
               :else                      (print-help opts)))))))
