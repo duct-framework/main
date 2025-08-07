@@ -1,5 +1,6 @@
 {:vars
- {name {:env USERNAME, :arg name, :default "World"}}
+ {name     {:env USERNAME, :arg name, :default "World"}
+  jdbc-url {:default "jdbc:sqlite:test.db"}}
  :system
  {:duct.module/logging {}
   :duct.module/sql {}
