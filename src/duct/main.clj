@@ -18,6 +18,7 @@
    [nil  "--init"  "Create a blank duct.edn config file"]
    [nil  "--init-calva" "Create a .vscode/settings.json file for Calva"]
    [nil  "--init-cider" "Create a .dir-locals.el Emacs file for CIDER"]
+   [nil  "--init-docker" "Create a Dockerfile"]
    ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
     :parse-fn parse-concatenated-keywords]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
@@ -51,6 +52,9 @@
 
 (def ^:private vs-code-settings-file
   (delay (slurp (io/resource "duct/main/settings.json"))))
+
+(def ^:private docker-file
+  (delay (slurp (io/resource "duct/main/Dockerfile"))))
 
 (defn- output-to-file [^String content filename]
   (let [f (io/file filename)]
@@ -125,6 +129,8 @@
               (let [f (io/file ".vscode" "settings.json")]
                 (io/make-parents f)
                 (output-to-file @vs-code-settings-file f)))
+            (when (:init-docker options)
+              (output-to-file @docker-file "Dockerfile"))
             (when (:nrepl options)
               (start-nrepl options))
             (cond
@@ -134,4 +140,5 @@
               (:init options)            nil
               (:init-cider options)      nil
               (:init-calva options)      nil
+              (:init-docker options)     nil
               :else                      (print-help opts)))))))
