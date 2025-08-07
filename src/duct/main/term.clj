@@ -23,7 +23,7 @@
 
 (def ^:dynamic *verbose* false)
 
-(def verbose-prefix (delay (colorize cyan-color "»")))
+(def verbose-prefix (delay (colorize cyan-color ">")))
 
 (defn verbose [s]
   (when *verbose* (printerr @verbose-prefix s)))
