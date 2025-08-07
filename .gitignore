@@ -1,7 +1,6 @@
-/.cpcache
-/test-project/.cpcache
-/.clj-kondo
-/.nrepl-port
+.cpcache
+.clj-kondo
+.nrepl-port
 .rebel_readline_history
 /test-project/logs
 /test-project/*.db
@@ -9,3 +8,5 @@
 /pom.xml.asc
 /target
 .dir-locals.el
+.vscode
+.calva

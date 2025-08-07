@@ -1,0 +1,11 @@
+{
+    "calva.replConnectSequences": [
+        {
+            "name": "Duct",
+            "projectType": "custom",
+            "customJackInCommandLine": "clojure -M:duct --nrepl --cider"
+        }   
+    ],
+    "calva.refreshNssBeforeFn": "integrant.repl/suspend",
+    "calva.refreshNssAfterFn": "integrant.repl/resume"
+}

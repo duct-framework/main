@@ -16,6 +16,7 @@
 (def default-cli-options
   [["-c" "--cider" "Add CIDER middleware (used with --nrepl)"]
    [nil  "--init"  "Create a blank duct.edn config file"]
+   [nil  "--init-calva" "Create a .vscode/settings.json file for Calva"]
    [nil  "--init-cider" "Create a .dir-locals.el Emacs file for CIDER"]
    ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
     :parse-fn parse-concatenated-keywords]
@@ -48,11 +49,14 @@
 (def ^:private dir-locals-file
   (delay (slurp (io/resource "duct/main/dir-locals.el"))))
 
-(defn- output-to-file [^String content ^String filename]
-  (let [f (java.io.File. filename)]
+(def ^:private vs-code-settings-file
+  (delay (slurp (io/resource "duct/main/settings.json"))))
+
+(defn- output-to-file [^String content filename]
+  (let [f (io/file filename)]
     (if (.exists f)
-      (do (term/printerr filename "already exists") (System/exit 1))
-      (do (spit f content) (term/printerr "Created" filename)))))
+      (do (term/printerr (str f) "already exists") (System/exit 1))
+      (do (spit f content) (term/printerr "Created" (str f))))))
 
 (defn- read-config [^String filename]
   (let [f (java.io.File. filename)]
@@ -117,6 +121,10 @@
               (output-to-file blank-config-string "duct.edn"))
             (when (:init-cider options)
               (output-to-file @dir-locals-file ".dir-locals.el"))
+            (when (:init-calva options)
+              (let [f (io/file ".vscode" "settings.json")]
+                (io/make-parents f)
+                (output-to-file @vs-code-settings-file f)))
             (when (:nrepl options)
               (start-nrepl options))
             (cond
@@ -125,4 +133,5 @@
               (:nrepl options)           (.join (Thread/currentThread))
               (:init options)            nil
               (:init-cider options)      nil
+              (:init-calva options)      nil
               :else                      (print-help opts)))))))
