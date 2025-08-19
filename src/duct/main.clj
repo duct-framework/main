@@ -124,8 +124,9 @@
         (:help options) (print-help opts)
         (:show options) (show-config config options)
         :else
-        (do (when (and (:main options) (:repl options))
-              (term/printerr "Cannot use --main and --repl options together.")
+        (do (when (->> options keys (filter #{:main :repl :test}) next)
+              (term/printerr "Can only use one of the following options:"
+                             "--main, --repl, --test.")
               (System/exit 1))
             (when (or (:main options)
                       (:repl options)
