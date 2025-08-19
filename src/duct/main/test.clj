@@ -15,9 +15,22 @@
     (term/verbose "No test configuration found, using defaults"))
   test-config)
 
+(defn- merge-cli-options
+  [config {:keys [test-focus test-skip test-focus-meta test-skip-meta]}]
+  (-> config
+      (cond-> test-focus
+        (assoc :kaocha.filter/focus [test-focus]))
+      (cond-> test-focus-meta
+        (assoc :kaocha.filter/focus-meta [test-focus-meta]))
+      (cond-> test-skip
+        (assoc :kaocha.filter/skip [test-skip]))
+      (cond-> test-skip-meta
+        (assoc :kaocha.filter/skip-meta [test-skip-meta]))))
+
 (defn load-config [options]
   (let [config  (-> (get-config-file options)
                     (config/load-config)
+                    (merge-cli-options options)
                     (config/validate!))
         plugins (plugin/load-all (:kaocha/plugins config))
         config' (plugin/with-plugins plugins

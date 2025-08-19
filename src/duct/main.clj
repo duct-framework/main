@@ -28,7 +28,15 @@
    ["-r" "--repl"    "Start a command-line REPL"]
    ["-s" "--show"    "Print out the expanded configuration and exit"]
    ["-t" "--test"    "Run the test suite"]
-   [nil  "--test-config FILE" "Use a custom test config file"]
+   [nil  "--test-config FILE"    "Use a custom test config file"]
+   [nil  "--test-focus ID" "Limit tests to run only this one"
+    :parse-fn read-string]
+   [nil  "--test-skip ID" "Skip this test"
+    :parse-fn read-string]
+   [nil  "--test-focus-meta KEY" "Limit tests to ones with this metadata"
+    :parse-fn read-string]
+   [nil  "--test-skip-meta KEY" "Skip tests with this metadata"
+    :parse-fn read-string]
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"    "Print this help message and exit"]])
 
