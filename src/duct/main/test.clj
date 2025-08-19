@@ -15,7 +15,9 @@
 
 (defn run-tests [config]
   (try+
-    (result/totals (:kaocha.result/tests (api/run config)))
+    (let [totals (result/totals (:kaocha.result/tests (api/run config)))]
+      (-> (+ (:kaocha.result/error totals) (:kaocha.result/fail totals))
+          (min 255)))
     (catch :kaocha/early-exit {exit-code :kaocha/early-exit}
       (if (not= exit-code 0)
         (output/error "Test run exited with code " exit-code)

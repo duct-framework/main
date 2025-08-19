@@ -104,9 +104,10 @@
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) load-config options)))
 
 (defn- start-tests [_options]
-  (let [config (term/with-spinner-unbuffered " Loading test environment"
-                 ((requiring-resolve 'duct.main.test/load-config)))]
-    ((requiring-resolve 'duct.main.test/run-tests) config)))
+  (let [config    (term/with-spinner-unbuffered " Loading test environment"
+                    ((requiring-resolve 'duct.main.test/load-config)))
+        run-tests (requiring-resolve 'duct.main.test/run-tests)]
+    (System/exit (run-tests config))))
 
 (defn- setup-hashp [options]
   (when (:main options) (disable-hashp!))
