@@ -74,7 +74,9 @@
 
 (defn- read-config [^String filename]
   (let [f (java.io.File. filename)]
-    (if (.exists f) (ig/read-string (slurp f)) {})))
+    (if (.exists f)
+      (ig/read-string {:readers {'duct/include read-config}} (slurp f))
+      {})))
 
 (defn- load-config
   ([] (load-config "duct.edn"))

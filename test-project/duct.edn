@@ -7,6 +7,6 @@
   :duct.module/web
   {:features #{:site}
    :handler-opts {:db #ig/ref :duct.database/sql}
-   :routes [["/" {:get :test-project/hello}]]}
+   :routes #duct/include "routes.edn"}
 
   :test-project/hello {:name #ig/var name}}}
