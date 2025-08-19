@@ -103,10 +103,10 @@
                        " Starting nREPL server")
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) load-config options)))
 
-(defn- start-tests [options]
-  (term/with-spinner " Loading test environment"
-    ((requiring-resolve 'kaocha.repl/test-plan) {}))
-  ((requiring-resolve 'kaocha.repl/run-all)))
+(defn- start-tests [_options]
+  (let [config (term/with-spinner-unbuffered " Loading test environment"
+                 ((requiring-resolve 'duct.main.test/load-config)))]
+    ((requiring-resolve 'duct.main.test/run-tests) config)))
 
 (defn- setup-hashp [options]
   (when (:main options) (disable-hashp!))

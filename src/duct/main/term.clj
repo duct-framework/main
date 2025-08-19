@@ -69,3 +69,8 @@
   `(if *verbose*
      (do ~@body)
      (buffer-stdout-fn (fn [] (with-spinner-fn ~message (fn [] ~@body))))))
+
+(defmacro with-spinner-unbuffered [message & body]
+  `(if *verbose*
+     (do ~@body)
+     (with-spinner-fn ~message (fn [] ~@body))))
