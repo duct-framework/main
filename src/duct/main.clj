@@ -27,6 +27,7 @@
    ["-m" "--main"    "Start the application"]
    ["-r" "--repl"    "Start a command-line REPL"]
    ["-s" "--show"    "Print out the expanded configuration and exit"]
+   ["-t" "--test"    "Run the test suite"]
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"    "Print this help message and exit"]])
 
@@ -41,7 +42,7 @@
 
 (defn- print-help [{:keys [summary]}]
   (println (str "Usage:\n\tclojure -M:duct "
-                "[--init | --main | --nrepl | --repl]"))
+                "[--init | --main | --nrepl | --repl | --test]"))
   (println (str "Options:\n" summary)))
 
 (def ^:private blank-config-string
@@ -102,6 +103,11 @@
                        " Starting nREPL server")
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) load-config options)))
 
+(defn- start-tests [options]
+  (term/with-spinner " Loading test environment"
+    ((requiring-resolve 'kaocha.repl/test-plan) {}))
+  ((requiring-resolve 'kaocha.repl/run-all)))
+
 (defn- setup-hashp [options]
   (when (:main options) (disable-hashp!))
   (require 'hashp.preload))
@@ -119,7 +125,10 @@
         (do (when (and (:main options) (:repl options))
               (term/printerr "Cannot use --main and --repl options together.")
               (System/exit 1))
-            (when (or (:main options) (:repl options) (:nrepl options))
+            (when (or (:main options)
+                      (:repl options)
+                      (:nrepl options)
+                      (:test options))
               (setup-hashp options))
             (when (:init options)
               (output-to-file blank-config-string "duct.edn"))
@@ -135,6 +144,7 @@
               (start-nrepl options))
             (cond
               (:main options)            (init-config config options)
+              (:test options)            (start-tests options)
               (:repl options)            (start-repl options)
               (:nrepl options)           (.join (Thread/currentThread))
               (:init options)            nil

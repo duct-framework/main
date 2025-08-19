@@ -10,4 +10,5 @@
                  [com.openvest/repl-balance "0.2.114"]
                  [dev.weavejester/hashp "0.4.0"]
                  [nrepl "1.3.1"]
-                 [cider/cider-nrepl "0.57.0"]])
+                 [cider/cider-nrepl "0.57.0"]
+                 [lambdaisland/kaocha "1.91.1392"]])
