@@ -72,16 +72,29 @@
       (do (term/printerr (str f) "already exists") (System/exit 1))
       (do (spit f content) (term/printerr "Created" (str f))))))
 
-(defn- read-config [^String filename]
-  (let [f (java.io.File. filename)]
+(declare read-config)
+
+(defn- cannot-find-include-error [f]
+  (ex-info (format "Unable to find include file: #duct/include \"%s\"" (str f))
+           {:include f}))
+
+(defn- include-file [^String filepath]
+  (let [f (java.io.File. filepath)]
     (if (.exists f)
-      (ig/read-string {:readers {'duct/include read-config}} (slurp f))
-      {})))
+      (read-config f)
+      (throw (cannot-find-include-error f)))))
+
+(defn- read-config [^java.io.File f]
+  (ig/read-string {:readers {'duct/include include-file}} (slurp f)))
+
+(defn- read-main-config [^String filepath]
+  (let [f (java.io.File. filepath)]
+    (if (.exists f) (read-config f) {})))
 
 (defn- load-config
   ([] (load-config "duct.edn"))
   ([filename]
-   (let [config (read-config filename)]
+   (let [config (read-main-config filename)]
      (update config :vars #(merge (find-annotated-vars config) %)))))
 
 (defn- disable-hashp! []
