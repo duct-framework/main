@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.12.1"]
                  [org.clojure/tools.cli "1.1.230"]
-                 [integrant "0.13.1"]
+                 [integrant "1.0.0-RC2"]
                  [integrant/repl "0.4.0"]
                  [com.openvest/repl-balance "0.2.114"]
                  [dev.weavejester/hashp "0.4.0"]
