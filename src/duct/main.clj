@@ -28,6 +28,7 @@
    ["-r" "--repl"    "Start a command-line REPL"]
    ["-s" "--show"    "Print out the expanded configuration and exit"]
    ["-t" "--test"    "Run the test suite"]
+   [nil  "--test-config FILE" "Use a custom test config file"]
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"    "Print this help message and exit"]])
 
@@ -103,9 +104,9 @@
                        " Starting nREPL server")
     ((requiring-resolve 'duct.main.nrepl/start-nrepl) load-config options)))
 
-(defn- start-tests [_options]
-  (let [config    (term/with-spinner-unbuffered " Loading test environment"
-                    ((requiring-resolve 'duct.main.test/load-config)))
+(defn- start-tests [options]
+  (let [config (term/with-spinner-unbuffered " Loading test environment"
+                 ((requiring-resolve 'duct.main.test/load-config) options))
         run-tests (requiring-resolve 'duct.main.test/run-tests)]
     (System/exit (run-tests config))))
 
