@@ -16,6 +16,7 @@
 (def default-cli-options
   [["-c" "--cider" "Add CIDER middleware (used with --nrepl)"]
    [nil  "--init"  "Create a blank duct.edn config file"]
+   [nil  "--init-bb" "Create a Babashka bb.edn file"]
    [nil  "--init-calva" "Create a .vscode/settings.json file for Calva"]
    [nil  "--init-cider" "Create a .dir-locals.el Emacs file for CIDER"]
    [nil  "--init-docker" "Create a Dockerfile"]
@@ -65,6 +66,9 @@
 
 (def ^:private docker-file
   (delay (slurp (io/resource "duct/main/Dockerfile"))))
+
+(def ^:private bb-edn-file
+  (delay (slurp (io/resource "duct/main/bb.edn"))))
 
 (defn- output-to-file [^String content filename]
   (let [f (io/file filename)]
@@ -158,6 +162,8 @@
               (setup-hashp options))
             (when (:init options)
               (output-to-file blank-config-string "duct.edn"))
+            (when (:init-bb options)
+              (output-to-file @bb-edn-file "bb.edn"))
             (when (:init-cider options)
               (output-to-file @dir-locals-file ".dir-locals.el"))
             (when (:init-calva options)
@@ -174,6 +180,7 @@
               (:repl options)            (start-repl options)
               (:nrepl options)           (.join (Thread/currentThread))
               (:init options)            nil
+              (:init-bb options)         nil
               (:init-cider options)      nil
               (:init-calva options)      nil
               (:init-docker options)     nil
