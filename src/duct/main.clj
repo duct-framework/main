@@ -89,7 +89,9 @@
       (throw (cannot-find-include-error f)))))
 
 (defn- read-config [^java.io.File f]
-  (ig/read-string {:readers {'duct/include include-file}} (slurp f)))
+  (ig/read-string {:readers {'duct/include include-file
+                             'duct/resource io/resource}}
+                  (slurp f)))
 
 (defn- read-main-config [^String filepath]
   (let [f (java.io.File. filepath)]
