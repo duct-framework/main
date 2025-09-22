@@ -2,6 +2,7 @@
   (:require [clojure.java.classpath :as cp]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            [duct.main.term :as term]
             [puget.printer :as puget]
             [puget.color :as color]
             [integrant.core :as ig]))
@@ -45,7 +46,9 @@
    (color/document printer :delimiter "{")
    [:align (->> (for [[k v] config]
                   [:span
-                   (puget/format-doc printer k)
+                   (if (keyword? k)
+                     (color/document printer :component (str k))
+                     (puget/format-doc printer k))
                    :break
                    (puget/format-doc printer v)])
                 (interpose :break))]
@@ -54,11 +57,22 @@
 (defn pprint [config]
   (puget/pprint
    (map->TopLevelConfig config)
-   {:print-color true
+   {:print-color @term/color?
     :print-handlers
     {integrant.core.Ref     (puget/tagged-handler 'ig/ref :key)
      integrant.core.RefSet  (puget/tagged-handler 'ig/refset :key)
      integrant.core.Var     (puget/tagged-handler 'ig/var :name)
      integrant.core.Profile (puget/tagged-handler 'ig/profile #(into {} %))
      java.net.URL           url-handler
-     duct.pprint.TopLevelConfig top-level-handler}}))
+     duct.pprint.TopLevelConfig top-level-handler}
+    :color-scheme
+    {:delimiter [:bold :red]
+     :component [:bold :yellow]
+     :tag [:cyan]
+     :nil nil
+     :boolean nil
+     :number nil
+     :string [:green]
+     :character nil
+     :keyword nil
+     :symbol nil}}))
