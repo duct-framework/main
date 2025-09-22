@@ -44,7 +44,7 @@
 (defn- top-level-handler [printer config]
   [:group
    (color/document printer :delimiter "{")
-   [:align (->> (for [[k v] config]
+   [:align (->> (for [[k v] (sort config)]
                   [:span
                    (if (keyword? k)
                      (color/document printer :component (str k))
