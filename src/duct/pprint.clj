@@ -49,7 +49,7 @@
                    (if (keyword? k)
                      (color/document printer :component (str k))
                      (puget/format-doc printer k))
-                   :break
+                   (if (= v {}) " " :break)
                    (puget/format-doc printer v)])
                 (interpose :break))]
    (color/document printer :delimiter "}")])
