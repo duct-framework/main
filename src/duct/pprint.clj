@@ -1,8 +1,9 @@
 (ns duct.pprint
   (:require [clojure.java.classpath :as cp]
             [clojure.java.io :as io]
-            [clojure.pprint :as pp]
             [clojure.string :as str]
+            [puget.printer :as puget]
+            [puget.color :as color]
             [integrant.core :as ig]))
 
 (defn- parent-files [^java.io.File f]
@@ -32,42 +33,32 @@
     (when-let [cp (classpath-dir (url->file url-str))]
       (url->resource cp url-str))))
 
-(defn- url? [x]
-  (instance? java.net.URL x))
-
-(defn- pprint-url [url]
+(defn- url-handler [printer url]
   (if-some [path (resource-path url)]
-    (print "#duct/resource" (pr-str path))
-    (pp/simple-dispatch url)))
+    (puget/format-doc printer (tagged-literal 'duct/resource path))
+    (puget/format-doc printer url)))
 
 (defrecord TopLevelConfig [])
 
-(defn- top-config? [x]
-  (instance? TopLevelConfig x))
-
-(defn- pprint-top-config [config]
-  (pp/pprint-logical-block
-   :prefix "{" :per-line-prefix " " :suffix "}"
-   (loop [[[k v] & kvs] config]
-     (pp/pprint-logical-block
-      (pp/write-out k)
-      (.write ^java.io.Writer *out* " ")
-      (pp/pprint-newline :linear)
-      (pp/write-out v))
-     (when (seq kvs)
-       (pp/pprint-newline :mandatory)
-       (recur kvs)))))
-
-(defn- config-dispatch [x]
-  (cond
-    (ig/ref? x)     (print "#ig/ref" (:key x))
-    (ig/refset? x)  (print "#ig/refset" (:key x))
-    (ig/var? x)     (print "#ig/var" (:name x))
-    (ig/profile? x) (do (print "#ig/profile") (pp/simple-dispatch (into {} x)))
-    (top-config? x) (pprint-top-config x)
-    (url? x)        (pprint-url x)
-    :else           (pp/simple-dispatch x)))
+(defn- top-level-handler [printer config]
+  [:group
+   (color/document printer :delimiter "{")
+   [:align (->> (for [[k v] config]
+                  [:span
+                   (puget/format-doc printer k)
+                   :break
+                   (puget/format-doc printer v)])
+                (interpose :break))]
+   (color/document printer :delimiter "}")])
 
 (defn pprint [config]
-  (pp/with-pprint-dispatch config-dispatch
-    (pp/pprint (map->TopLevelConfig config))))
+  (puget/pprint
+   (map->TopLevelConfig config)
+   {:print-color true
+    :print-handlers
+    {integrant.core.Ref     (puget/tagged-handler 'ig/ref :key)
+     integrant.core.RefSet  (puget/tagged-handler 'ig/refset :key)
+     integrant.core.Var     (puget/tagged-handler 'ig/var :name)
+     integrant.core.Profile (puget/tagged-handler 'ig/profile #(into {} %))
+     java.net.URL           url-handler
+     duct.pprint.TopLevelConfig top-level-handler}}))
