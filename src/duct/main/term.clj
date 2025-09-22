@@ -2,6 +2,7 @@
 
 (def ^:const show-cursor "\u001B[?25h")
 (def ^:const hide-cursor "\u001B[?25l")
+(def ^:const erase-line  "\u001B[2K")
 
 (def ^:const spinner-chars (seq "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"))
 (def ^:const spinner-complete "✓")
@@ -28,7 +29,7 @@
 (defn verbose [s]
   (when *verbose* (printerr @verbose-prefix s)))
 
-(defn- spinner [message stop]
+(defn- spinner [message stop disappear?]
   (.write *err* hide-cursor)
   (loop [chars (cycle spinner-chars)]
     (when-not (realized? stop)
@@ -36,25 +37,30 @@
       (.flush *err*)
       (Thread/sleep 100)
       (recur (rest chars))))
-  (if (= :complete @stop)
-    (.write *err* (str "\r" (colorize green-color spinner-complete)))
-    (.write *err* (str "\r" (colorize red-color spinner-error))))
-  (.write *err* (str message show-cursor "\n"))
+  (if disappear?
+    (.write *err* (str erase-line "\r" show-cursor))
+    (do (if (= :complete @stop)
+          (.write *err* (str "\r" (colorize green-color spinner-complete)))
+          (.write *err* (str "\r" (colorize red-color spinner-error))))
+        (.write *err* (str message show-cursor "\n"))))
   (.flush *err*))
 
-(defn- start-spinner [message]
+(defn- start-spinner [message disappear?]
   (let [stop   (promise)
-        thread (Thread. #(spinner message stop))]
+        thread (Thread. #(spinner message stop disappear?))]
     (.start thread)
     (fn [ret] (stop ret) (.join thread))))
 
-(defn with-spinner-fn [message f]
-  (let [stop-spinner (start-spinner message)]
-    (try (let [ret (f)]
-           (stop-spinner :complete) ret)
-         (catch Exception ex
-           (stop-spinner :error)
-           (throw ex)))))
+(defn with-spinner-fn
+  ([message f]
+   (with-spinner-fn message f false))
+  ([message f disappear?]
+   (let [stop-spinner (start-spinner message disappear?)]
+     (try (let [ret (f)]
+            (stop-spinner :complete) ret)
+          (catch Exception ex
+            (stop-spinner :error)
+            (throw ex))))))
 
 (defn buffer-stdout-fn [f]
   (let [buffer (java.io.ByteArrayOutputStream.)
@@ -74,3 +80,9 @@
   `(if *verbose*
      (do ~@body)
      (with-spinner-fn ~message (fn [] ~@body))))
+
+(defmacro with-spinner-temporary [message & body]
+  `(if *verbose*
+     (do ~@body)
+     (buffer-stdout-fn
+      (fn [] (with-spinner-fn ~message (fn [] ~@body) true)))))

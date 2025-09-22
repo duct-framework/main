@@ -108,12 +108,12 @@
                   (constantly true)))
 
 (defn- show-config [config options]
-  ((term/with-spinner " Preparing config"
-     (let [pprn (requiring-resolve 'duct.pprint/pprint)
-           prep (requiring-resolve 'duct.main.config/prep)]
-       (disable-hashp!)
-       (require 'hashp.preload)
-       #(pprn (prep config options))))))
+  (print (term/with-spinner-temporary " Building configuration"
+           (let [pprn (requiring-resolve 'duct.pprint/pprint)
+                 prep (requiring-resolve 'duct.main.config/prep)]
+             (disable-hashp!)
+             (require 'hashp.preload)
+             (with-out-str (pprn (prep config options)))))))
 
 (defn- init-config [config options]
   (term/with-spinner " Initiating system"
