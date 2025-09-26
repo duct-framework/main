@@ -20,6 +20,7 @@
    [nil  "--init-calva" "Create a .vscode/settings.json file for Calva"]
    [nil  "--init-cider" "Create a .dir-locals.el Emacs file for CIDER"]
    [nil  "--init-docker" "Create a Dockerfile"]
+   [nil  "--init-git" "Create a .gitignore and initiate Git"]
    ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
     :parse-fn parse-concatenated-keywords]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
@@ -69,6 +70,9 @@
 
 (def ^:private bb-edn-file
   (delay (slurp (io/resource "duct/main/bb.edn"))))
+
+(def ^:private gitignore-file
+  (delay (slurp (io/resource "duct/main/gitignore"))))
 
 (defn- output-to-file [^String content filename]
   (let [f (io/file filename)]
@@ -144,6 +148,13 @@
   (when (:main options) (disable-hashp!))
   (require 'hashp.preload))
 
+(defn- git-init []
+  (let [sh     (requiring-resolve 'clojure.java.shell/sh)
+        result (sh "git" "init")]
+    (if (zero? (:exit result))
+      (term/printerr "Created empty Git repository in .git")
+      (term/printerr (:err result)))))
+
 (defn -main [& args]
   (let [config  (load-config)
         opts    (cli/parse-opts args (cli-options (:vars config)))
@@ -175,6 +186,9 @@
                 (output-to-file @vs-code-settings-file f)))
             (when (:init-docker options)
               (output-to-file @docker-file "Dockerfile"))
+            (when (:init-git options)
+              (when-not (.exists (io/file ".git")) (git-init))
+              (output-to-file @gitignore-file ".gitignore"))
             (when (:nrepl options)
               (start-nrepl options))
             (cond
@@ -187,4 +201,5 @@
               (:init-cider options)      nil
               (:init-calva options)      nil
               (:init-docker options)     nil
+              (:init-git options)        (shutdown-agents)
               :else                      (print-help opts)))))))

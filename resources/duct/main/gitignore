@@ -1,0 +1,9 @@
+/target
+/logs
+.cpcache
+.clj-kondo
+.nrepl-port
+.rebel_readline_history
+.vscode
+.calva
+.dir-locals.el
