@@ -3,7 +3,7 @@
   :url "https://github.com/duct-framework/main"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.12.2"]
+  :dependencies [[org.clojure/clojure "1.12.3"]
                  [org.clojure/tools.cli "1.1.230"]
                  [org.clojure/java.classpath "1.1.0"]
                  [mvxcvi/puget "1.3.4"]
