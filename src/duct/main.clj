@@ -26,8 +26,10 @@
    ["-s" "--show" "Print out the expanded configuration and exit"]
    ["-t" "--test" "Run the test suite"]
    [nil  "--test-config FILE" "Use a custom test config file"]
-   [nil  "--test-focus ID" "Limit tests to only this ID or metadata ^:key"]
-   [nil  "--test-skip ID" "Skip tests with this ID or metadata ^:key"]
+   [nil  "--test-focus ID" "Limit tests to only this ID or metadata ^:key"
+    :multi true, :default [], :update-fn conj]
+   [nil  "--test-skip ID" "Skip tests with this ID or metadata ^:key"
+    :multi true, :default [], :update-fn conj]
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"    "Print this help message and exit"]])
 

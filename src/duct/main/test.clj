@@ -7,6 +7,7 @@
             [kaocha.output :as output]
             [kaocha.plugin :as plugin]
             [kaocha.result :as result]
+            [kaocha.filter :as-alias filter]
             [slingshot.slingshot :refer [try+]]))
 
 (defn- get-config-file [{:keys [test-config]
@@ -16,20 +17,23 @@
     (term/verbose "No test configuration found, using defaults"))
   test-config)
 
+(defn- assoc-conj [m k v]
+  (update m k (fnil conj []) v))
+
 (defn- assoc-test-focus [config test-focus]
   (if (str/starts-with? test-focus "^")
-    (assoc config :kaocha.filter/focus-meta [(read-string (subs test-focus 1))])
-    (assoc config :kaocha.filter/focus [(read-string test-focus)])))
+    (assoc-conj config ::filter/focus-meta (read-string (subs test-focus 1)))
+    (assoc-conj config ::filter/focus (read-string test-focus))))
 
 (defn- assoc-test-skip [config test-skip]
   (if (str/starts-with? test-skip "^")
-    (assoc config :kaocha.filter/skip-meta [(read-string (subs test-skip 1))])
-    (assoc config :kaocha.filter/skip [(read-string test-skip)])))
+    (assoc-conj config ::filter/skip-meta (read-string (subs test-skip 1)))
+    (assoc-conj config ::filter/skip (read-string test-skip))))
 
 (defn- merge-cli-options [config {:keys [test-focus test-skip]}]
   (-> config
-      (cond-> test-focus (assoc-test-focus test-focus))
-      (cond-> test-skip  (assoc-test-skip  test-skip))))
+      (as-> c (reduce assoc-test-focus c test-focus))
+      (as-> c (reduce assoc-test-skip c test-skip))))
 
 (defn load-config [options]
   (let [config  (-> (get-config-file options)
