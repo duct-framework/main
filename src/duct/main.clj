@@ -15,21 +15,16 @@
 
 (def default-cli-options
   [["-c" "--cider" "Add CIDER middleware (used with --nrepl)"]
-   [nil  "--init"  "Create a blank duct.edn config file"]
-   [nil  "--init-bb" "Create a Babashka bb.edn file"]
-   [nil  "--init-calva" "Create a .vscode/settings.json file for Calva"]
-   [nil  "--init-cider" "Create a .dir-locals.el Emacs file for CIDER"]
-   [nil  "--init-docker" "Create a Dockerfile"]
-   [nil  "--init-git" "Create a .gitignore and initiate Git"]
    ["-k" "--keys KEYS" "Limit --main to start only the supplied keys"
     :parse-fn parse-concatenated-keywords]
    ["-p" "--profiles PROFILES" "A concatenated list of profile keys"
     :parse-fn parse-concatenated-keywords]
-   ["-n" "--nrepl"   "Start an nREPL server"]
-   ["-m" "--main"    "Start the application"]
-   ["-r" "--repl"    "Start a command-line REPL"]
-   ["-s" "--show"    "Print out the expanded configuration and exit"]
-   ["-t" "--test"    "Run the test suite"]
+   ["-n" "--nrepl" "Start an nREPL server"]
+   ["-m" "--main" "Start the application"]
+   ["-r" "--repl" "Start a command-line REPL"]
+   [nil  "--setup KEYS" "Run setup scripts (see --setup help)"]
+   ["-s" "--show" "Print out the expanded configuration and exit"]
+   ["-t" "--test" "Run the test suite"]
    [nil  "--test-config FILE"    "Use a custom test config file"]
    [nil  "--test-focus ID" "Limit tests to run only this one"
     :parse-fn read-string]
@@ -155,6 +150,38 @@
       (term/printerr "Created empty Git repository in .git")
       (term/printerr (:err result)))))
 
+(def ^:private setup-keywords
+  {:bb     "Create a Babashka bb.edn file"
+   :calva  "Create a .vscode/settings.json file for Calva"
+   :cider  "Create a .dir-locals.el Emacs file for CIDER"
+   :docker "Create a Dockerfile"
+   :duct   "Create a blank duct.edn config file"
+   :git    "Create a .gitignore and initiate Git"})
+
+(defn- print-setup-help []
+  (term/printerr "Usage:\n\tclojure -M:duct --setup KEYS\nKeys:")
+  (doseq [[k desc] setup-keywords]
+    (term/printerr " " k "-" desc))
+  (term/printerr "\nMultiple keys can be specified by concatenating them."))
+
+(defn- setup [kws-string]
+  (let [kws (parse-concatenated-keywords kws-string)]
+    (when (or (= "help" kws-string)
+              (not (every? setup-keywords kws)))
+      (print-setup-help)
+      (System/exit 1))
+    (doseq [kw kws]
+      (case kw
+        :duct   (output-to-file blank-config-string "duct.edn")
+        :bb     (output-to-file @bb-edn-file "bb.edn")
+        :cider  (output-to-file @dir-locals-file ".dir-locals.el")
+        :docker (output-to-file @docker-file "Dockerfile")
+        :calva  (let [f (io/file ".vscode" "settings.json")]
+                  (io/make-parents f)
+                  (output-to-file @vs-code-settings-file f))
+        :git    (do (when-not (.exists (io/file ".git")) (git-init))
+                    (output-to-file @gitignore-file ".gitignore"))))))
+
 (defn -main [& args]
   (let [config  (load-config)
         opts    (cli/parse-opts args (cli-options (:vars config)))
@@ -174,32 +201,14 @@
                       (:nrepl options)
                       (:test options))
               (setup-hashp options))
-            (when (:init options)
-              (output-to-file blank-config-string "duct.edn"))
-            (when (:init-bb options)
-              (output-to-file @bb-edn-file "bb.edn"))
-            (when (:init-cider options)
-              (output-to-file @dir-locals-file ".dir-locals.el"))
-            (when (:init-calva options)
-              (let [f (io/file ".vscode" "settings.json")]
-                (io/make-parents f)
-                (output-to-file @vs-code-settings-file f)))
-            (when (:init-docker options)
-              (output-to-file @docker-file "Dockerfile"))
-            (when (:init-git options)
-              (when-not (.exists (io/file ".git")) (git-init))
-              (output-to-file @gitignore-file ".gitignore"))
+            (when (:setup options)
+              (setup (:setup options)))
             (when (:nrepl options)
               (start-nrepl options))
             (cond
-              (:main options)            (init-config config options)
-              (:test options)            (start-tests options)
-              (:repl options)            (start-repl options)
-              (:nrepl options)           (.join (Thread/currentThread))
-              (:init options)            nil
-              (:init-bb options)         nil
-              (:init-cider options)      nil
-              (:init-calva options)      nil
-              (:init-docker options)     nil
-              (:init-git options)        (shutdown-agents)
-              :else                      (print-help opts)))))))
+              (:main options)   (init-config config options)
+              (:test options)   (start-tests options)
+              (:repl options)   (start-repl options)
+              (:nrepl options)  (.join (Thread/currentThread))
+              (:setup options)  (shutdown-agents)
+              :else             (print-help opts)))))))
