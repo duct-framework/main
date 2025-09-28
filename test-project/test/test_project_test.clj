@@ -5,5 +5,5 @@
   (is (= 1 1))
   (is (= 1 0)))
 
-(deftest b-test
+(deftest ^:xx b-test
   (is (= 1 1)))

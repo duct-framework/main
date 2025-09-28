@@ -1,5 +1,6 @@
 (ns duct.main.test
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [duct.main.term :as term]
             [kaocha.api :as api]
             [kaocha.config :as config]
@@ -15,17 +16,20 @@
     (term/verbose "No test configuration found, using defaults"))
   test-config)
 
-(defn- merge-cli-options
-  [config {:keys [test-focus test-skip test-focus-meta test-skip-meta]}]
+(defn- assoc-test-focus [config test-focus]
+  (if (str/starts-with? test-focus "^")
+    (assoc config :kaocha.filter/focus-meta [(read-string (subs test-focus 1))])
+    (assoc config :kaocha.filter/focus [(read-string test-focus)])))
+
+(defn- assoc-test-skip [config test-skip]
+  (if (str/starts-with? test-skip "^")
+    (assoc config :kaocha.filter/skip-meta [(read-string (subs test-skip 1))])
+    (assoc config :kaocha.filter/skip [(read-string test-skip)])))
+
+(defn- merge-cli-options [config {:keys [test-focus test-skip]}]
   (-> config
-      (cond-> test-focus
-        (assoc :kaocha.filter/focus [test-focus]))
-      (cond-> test-focus-meta
-        (assoc :kaocha.filter/focus-meta [test-focus-meta]))
-      (cond-> test-skip
-        (assoc :kaocha.filter/skip [test-skip]))
-      (cond-> test-skip-meta
-        (assoc :kaocha.filter/skip-meta [test-skip-meta]))))
+      (cond-> test-focus (assoc-test-focus test-focus))
+      (cond-> test-skip  (assoc-test-skip  test-skip))))
 
 (defn load-config [options]
   (let [config  (-> (get-config-file options)
