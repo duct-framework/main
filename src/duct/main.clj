@@ -44,7 +44,7 @@
 
 (defn- print-help [{:keys [summary]}]
   (println (str "Usage:\n\tclojure -M:duct "
-                "[--init | --main | --nrepl | --repl | --test]"))
+                "[--main | --nrepl | --repl | --setup KEYS | --test]"))
   (println (str "Options:\n" summary)))
 
 (def ^:private blank-config-string
