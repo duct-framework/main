@@ -7,7 +7,7 @@
                  [org.clojure/tools.cli "1.2.245"]
                  [org.clojure/java.classpath "1.1.0"]
                  [mvxcvi/puget "1.3.4"]
-                 [integrant "1.0.0"]
+                 [integrant "1.0.1"]
                  [integrant/repl "0.5.0"]
                  [com.openvest/repl-balance "0.2.114"]
                  [dev.weavejester/hashp "0.4.0"]
