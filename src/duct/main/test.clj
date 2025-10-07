@@ -6,6 +6,7 @@
             [kaocha.config :as config]
             [kaocha.output :as output]
             [kaocha.plugin :as plugin]
+            [kaocha.plugin.randomize :as-alias randomize]
             [kaocha.result :as result]
             [kaocha.filter :as-alias filter]
             [slingshot.slingshot :refer [try+]]))
@@ -33,7 +34,8 @@
 (defn- merge-cli-options [config {:keys [test-focus test-skip]}]
   (-> config
       (as-> c (reduce assoc-test-focus c test-focus))
-      (as-> c (reduce assoc-test-skip c test-skip))))
+      (as-> c (reduce assoc-test-skip c test-skip))
+      (assoc ::randomize/randomize? false)))
 
 (defn load-config [options]
   (let [config  (-> (get-config-file options)
