@@ -19,7 +19,7 @@ Add the following dependency and alias to your `deps.edn` file:
 Then run:
 
 ```sh
-clojure -M:duct --init
+clojure -M:duct --setup :duct
 ```
 
 This will create a minimal `duct.edn` file.
