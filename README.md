@@ -12,7 +12,7 @@ components will not work with this yet.
 Add the following dependency and alias to your `deps.edn` file:
 
 ```edn
-{:deps {org.duct-framework/main {:mvn/version "0.4.1"}}
+{:deps {org.duct-framework/main {:mvn/version "0.4.2"}}
  :aliases {:duct {:main-opts ["-m" "duct.main"]}}}
 ```
 
