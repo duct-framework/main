@@ -1,8 +1,8 @@
 {:tasks
  {main {:doc "Runs the application"
-        :task (clojure "-M:duct --main")}
+        :task (apply clojure "-M:duct" "--main" *command-line-args*)}
   test {:doc "Runs the test suite"
-        :task (clojure "-M:duct:test --test")}
+        :task (apply clojure "-M:duct:test" "--test" *command-line-args*)}
   repl {:doc "Starts a REPL"
         :override-builtin true
-        :task (clojure "-M:duct --repl")}}}
+        :task (clojure "-M:duct" "--repl" *command-line-args*)}}}
