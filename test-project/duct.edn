@@ -10,4 +10,6 @@
    :handler-opts {:db #ig/ref :duct.database/sql}
    :routes #duct/include "routes.edn"}
 
-  :test-project/hello {:name #ig/var name}}}
+  :test-project/hello {:name #ig/var name
+                       :foo #ig/var foo
+                       :bar #ig/var bar}}}

@@ -1,5 +1,7 @@
 {:test-project/hello
- {:duct/vars {foo {:arg foo :default "foo"}}
+ {:duct/vars
+  {foo {:arg foo :default "foo"}
+   bar {:arg "bar B" :default nil}}
   :doc
   "This is a test docstring for the :test-project/hello keyword.
   Here's another line of the docstring.

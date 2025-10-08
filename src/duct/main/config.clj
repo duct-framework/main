@@ -11,8 +11,12 @@
   (some-> (System/getenv (str env))
           (cond-> type (coerce type))))
 
+(def ^:private re-first-word #"^.*?(?=\s|$)")
+
 (defn- get-opt [{:keys [arg type]} opts]
-  (some-> (opts (keyword arg))
+  (some-> (opts (if (string? arg)
+                  (keyword (re-find re-first-word arg))
+                  (keyword arg)))
           (cond-> type (coerce type))))
 
 (defn- assoc-var-value [opts var-map key var]

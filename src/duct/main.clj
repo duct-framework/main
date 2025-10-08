@@ -36,7 +36,9 @@
 (defn- var->cli-option [{:keys [arg doc]}]
   (when arg
     `[nil
-      ~(str "--" arg " " (.toUpperCase (str arg)))
+      ~(if (string? arg)
+         (str "--" arg)
+         (str "--" arg " " (.toUpperCase (name arg))))
       ~@(when doc [doc])]))
 
 (defn- cli-options [vars]
