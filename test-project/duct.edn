@@ -3,7 +3,8 @@
   jdbc-url {:default "jdbc:sqlite:test.db"}}
  :system
  {:duct.module/logging {}
-  :duct.module/sql {}
+  :duct.module/sql
+  {:migrations #duct/include "migrations.edn"}
   :duct.module/web
   {:features #{:site}
    :handler-opts {:db #ig/ref :duct.database/sql}
