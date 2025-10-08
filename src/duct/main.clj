@@ -34,15 +34,18 @@
    ["-h" "--help"    "Print this help message and exit"]])
 
 (defn- var->cli-option [{:keys [arg doc]}]
-  (when arg
-    `[nil
-      ~(if (string? arg)
-         (str "--" arg)
-         (str "--" arg " " (.toUpperCase (name arg))))
-      ~@(when doc [doc])]))
+  `[nil
+    ~(if (string? arg)
+       (str "--" arg)
+       (str "--" arg " " (.toUpperCase (name arg))))
+    ~@(when doc [doc])])
 
 (defn- cli-options [vars]
-  (into default-cli-options (keep var->cli-option) (vals vars)))
+  (->> (vals vars)
+       (filter :arg)
+       (map var->cli-option)
+       (sort-by second)
+       (into default-cli-options)))
 
 (defn- print-help [{:keys [summary]}]
   (println (str "Usage:\n\tclojure -M:duct "
