@@ -9,14 +9,17 @@
   "SELECT counter FROM counters WHERE remote_addr = ?")
 
 (defn hello [{:keys [db name]}]
-  (fn [{:keys [remote-addr]}]
-    (let [[{counter :counters/counter}]
+  (fn [{:keys [remote-addr session]}]
+    (let [session' (update session :count (fnil inc 0))
+          [{counter :counters/counter}]
           (jdbc/with-transaction [tx db]
             (jdbc/execute! tx [inc-counter remote-addr])
             (jdbc/execute! tx [get-counter remote-addr]))]
       {:status 200
        :headers {"Content-Type" "text/html; charset=UTF-8"}
+       :session session'
        :body (str "<!DOCTYPE html>\n<html lang=\"en\">"
                   "<head><title>Greet Example</title></head>"
                   "<body><h1>Hello " name " (count: " #p counter ")"
+                  "</h1>Session: " (pr-str (select-keys session' [:count]))
                   "</h1></body></html>")})))
