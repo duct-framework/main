@@ -103,16 +103,12 @@
    (let [config (read-main-config filename)]
      (update config :vars #(merge (find-annotated-vars config) %)))))
 
-(defn- disable-hashp! []
-  (alter-var-root (requiring-resolve 'hashp.config/*disable-hashp*)
-                  (constantly true)))
-
 (defn- show-config [config options]
   (print (term/with-spinner-temporary " Building configuration"
            (let [pprn (requiring-resolve 'duct.pprint/pprint)
                  prep (requiring-resolve 'duct.main.config/prep)]
-             (disable-hashp!)
-             (require 'hashp.preload)
+             ((requiring-resolve 'hashp.install/install!)
+              {:disabled? true})
              (with-out-str (pprn (prep config options)))))))
 
 (defn- init-config [config options]
@@ -141,8 +137,8 @@
     (System/exit (run-tests config))))
 
 (defn- setup-hashp [options]
-  (when (:main options) (disable-hashp!))
-  (require 'hashp.preload))
+  ((requiring-resolve 'hashp.install/install!)
+   {:disabled? (:main options)}))
 
 (defn- git-init []
   (let [sh     (requiring-resolve 'clojure.java.shell/sh)
