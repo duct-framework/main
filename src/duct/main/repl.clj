@@ -12,7 +12,7 @@
 
 (defn- handle-sigint-form []
   `(let [thread# (Thread/currentThread)]
-     (repl/set-break-handler! (fn [_signal#] (.stop thread#)))))
+     (repl/set-break-handler! (fn [_signal#] (.interrupt thread#)))))
 
 (def ^:private duct-reset-widget
   (jline/create-widget
