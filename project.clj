@@ -9,7 +9,7 @@
                  [mvxcvi/puget "1.3.4"]
                  [integrant "1.0.1"]
                  [integrant/repl "0.5.1"]
-                 [com.openvest/repl-balance "0.2.114"]
+                 [com.bhauman/rebel-readline "0.1.11"]
                  [dev.weavejester/hashp "0.5.1"]
                  [nrepl "1.6.0"]
                  [cider/cider-nrepl "0.58.0"]
