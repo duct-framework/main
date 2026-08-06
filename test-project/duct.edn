@@ -1,6 +1,7 @@
 {:vars
  {name     {:env USERNAME, :arg name, :default "World"}
-  jdbc-url {:default "jdbc:sqlite:test.db"}}
+  jdbc-url {:default "jdbc:sqlite:test.db"}
+  booltest {:env BOOLTEST, :arg booltest, :type :bool, :default false}}
  :system
  {:duct.module/logging {}
   :duct.module/sql
@@ -12,4 +13,5 @@
 
   :test-project/hello {:name #ig/var name
                        :foo #ig/var foo
-                       :bar #ig/var bar}}}
+                       :bar #ig/var bar
+                       :booltest #ig/var booltest}}}

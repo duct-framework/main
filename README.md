@@ -63,7 +63,8 @@ keys:
 - `:arg`     - the command-line flag to get the var from
 - `:default` - the default value of the var
 - `:env`     - the environment variable to get the var from
-- `:type`    - the type of the var, one of: `:str`, `:int`
+- `:type`    - the type of the var, either `:bool`, `:float` `:int` or
+               `:str`
 
 Vars can also be defined through Integrant's [annotations][]. When Duct
 starts, it looks through the keys in the configuration for annotations

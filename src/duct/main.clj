@@ -33,9 +33,9 @@
    ["-v" "--verbose" "Enable verbose logging"]
    ["-h" "--help"    "Print this help message and exit"]])
 
-(defn- var->cli-option [{:keys [arg doc]}]
+(defn- var->cli-option [{:keys [arg doc type]}]
   `[nil
-    ~(if (string? arg)
+    ~(if (or (string? arg) (= type :bool))
        (str "--" arg)
        (str "--" arg " " (.toUpperCase (name arg))))
     ~@(when doc [doc])])

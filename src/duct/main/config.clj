@@ -1,11 +1,13 @@
 (ns duct.main.config
-  (:require [duct.main.term :as term]
+  (:require [clojure.string :as str]
+            [duct.main.term :as term]
             [integrant.core :as ig]))
 
 (defmulti coerce (fn [_value type] type))
 (defmethod coerce :float [x _] (Double/parseDouble x))
 (defmethod coerce :int [n _] (Long/parseLong n))
 (defmethod coerce :str [s _] s)
+(defmethod coerce :bool [s _] (if (string? s) (not (str/blank? s)) (boolean s)))
 
 (defn- get-env [{:keys [env type]}]
   (some-> (System/getenv (str env))
