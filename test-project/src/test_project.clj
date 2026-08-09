@@ -8,7 +8,7 @@
 (def ^:const get-counter
   "SELECT counter FROM counters WHERE remote_addr = ?")
 
-(defn hello [{:keys [db name foo bar booltest]}]
+(defn hello [{:keys [db name foo bar booltest edntest]}]
   (fn [{:keys [remote-addr session]}]
     (let [session' (update session :count (fnil inc 0))
           [{counter :counters/counter}]
@@ -24,4 +24,5 @@
                   "</h1>Session: " (pr-str (select-keys session' [:count]))
                   "</h1><p>foo = " (pr-str foo) ", bar = " (pr-str bar)
                   ", booltest = " (pr-str booltest)
+                  ", edntest = " (pr-str edntest)
                   "</h1></body></html>")})))
