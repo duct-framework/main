@@ -37,7 +37,7 @@
 (defn- url-handler [printer url]
   (if-some [path (resource-path url)]
     (puget/format-doc printer (tagged-literal 'duct/resource path))
-    (puget/format-doc printer url)))
+    (puget/format-doc printer (tagged-literal 'url (str url)))))
 
 (defrecord TopLevelConfig [])
 
