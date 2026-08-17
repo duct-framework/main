@@ -4,8 +4,7 @@
             [clojure.string :as str]
             [duct.main.term :as term]
             [puget.printer :as puget]
-            [puget.color :as color]
-            [integrant.core :as ig]))
+            [puget.color :as color]))
 
 (defn- parent-files [^java.io.File f]
   (take-while some? (iterate #(.getParentFile %) f)))

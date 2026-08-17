@@ -1,4 +1,5 @@
 (ns duct.main.test
+  {:clj-kondo/config '{:lint-as {slingshot.slingshot/try+ clojure.core/try}}}
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [duct.main.term :as term]
