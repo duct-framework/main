@@ -56,55 +56,40 @@ public class Eval {
         }
     }
 
+    private static int parseInt(String num, String name, int lower, int upper) {
+        try {
+            int n = Integer.parseInt(num);
+            if (n >= lower && n <= upper) return n;
+        } catch (NumberFormatException e) {
+        }
+        System.err.println("Invalid " + name + ": " + num);
+        System.exit(EXIT_CLIENT_ERROR);
+        return 0;
+    }
+
     private static Integer readPortFile() throws IOException {
         Path path = Paths.get(".nrepl-port");
         if (!Files.exists(path)) return null;
+
         // The file may exist before the port has been written to it.
         String port = Files.readString(path).trim();
         return port.isEmpty() ? null : parsePort(port);
     }
 
     private static int parsePort(String port) {
-        try {
-            return Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid port: " + port);
-            System.exit(EXIT_CLIENT_ERROR);
-            return 0;
-        }
+        return parseInt(port, "port", 1, 65535);
     }
 
     private static int parseTimeout(String timeout) {
-        try {
-            int secs = Integer.parseInt(timeout);
-            if (secs > 0) return secs;
-        } catch (NumberFormatException e) {
-        }
-        System.err.println("Invalid timeout: " + timeout);
-        System.exit(EXIT_CLIENT_ERROR);
-        return 0;
+        return parseInt(timeout, "timeout", 1, Integer.MAX_VALUE);
     }
 
     private static int parseMaxChars(String maxChars) {
-        try {
-            int chars = Integer.parseInt(maxChars);
-            if (chars > 0) return chars;
-        } catch (NumberFormatException e) {
-        }
-        System.err.println("Invalid max chars: " + maxChars);
-        System.exit(EXIT_CLIENT_ERROR);
-        return 0;
+        return parseInt(maxChars, "max chars", 1, Integer.MAX_VALUE);
     }
 
     private static int parseWait(String wait) {
-        try {
-            int secs = Integer.parseInt(wait);
-            if (secs > 0) return secs;
-        } catch (NumberFormatException e) {
-        }
-        System.err.println("Invalid wait: " + wait);
-        System.exit(EXIT_CLIENT_ERROR);
-        return 0;
+        return parseInt(wait, "wait", 1, Integer.MAX_VALUE);
     }
 
     private static String readCode(String code) throws IOException {
