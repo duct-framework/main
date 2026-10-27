@@ -1,6 +1,7 @@
 .cpcache
 .clj-kondo
 .nrepl-port
+.duct-eval-classpath
 .rebel_readline_history
 /test-project/logs
 /test-project/*.db

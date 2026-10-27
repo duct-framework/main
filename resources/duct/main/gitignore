@@ -3,6 +3,7 @@
 .cpcache
 .clj-kondo
 .nrepl-port
+.duct-eval-classpath
 .rebel_readline_history
 .vscode
 .calva
