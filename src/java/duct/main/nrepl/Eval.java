@@ -22,11 +22,11 @@ public class Eval {
     static final int EXIT_CLIENT_ERROR = 1;
     static final int EXIT_IO_ERROR     = 2;
 
-    static class Arguments {
+    static class Config {
         int port;
         String code;
 
-        Arguments(int port, String code) {
+        Config(int port, String code) {
             this.port = port;
             this.code = code;
         }
@@ -42,12 +42,31 @@ public class Eval {
         }
     }
 
-    private static Arguments parseArguments(String[] args) throws IOException {
+    private static int readPortFile() throws IOException {
+        Path path = Paths.get(".nrepl-port");
+        if (!Files.exists(path)) {
+            System.err.println("No .nrepl-port file found; use --port PORT");
+            System.exit(EXIT_CLIENT_ERROR);
+        }
+        return parsePort(Files.readString(path).trim());
+    }
+
+    private static int parsePort(String port) {
+        try {
+            return Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid port: " + port);
+            System.exit(EXIT_CLIENT_ERROR);
+            return 0;
+        }
+    }
+
+    private static Config parseArguments(String[] args) throws IOException {
         if (args.length == 3 && args[0].equals("--port")) {
-            return new Arguments(parsePort(args[1]), args[2]);
+            return new Config(parsePort(args[1]), args[2]);
         }
         if (args.length == 1) {
-            return new Arguments(readPortFile(), args[0]);
+            return new Config(readPortFile(), args[0]);
         }
         
         System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] CODE");
@@ -55,7 +74,7 @@ public class Eval {
         return null;
     }
 
-    private static void run(Arguments arguments) throws IOException {
+    private static void run(Config arguments) throws IOException {
         try (Socket socket = new Socket("localhost", arguments.port)) {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             InputStream in   = new BufferedInputStream(socket.getInputStream());
@@ -82,26 +101,7 @@ public class Eval {
         }
     }
 
-    private static int readPortFile() throws IOException {
-        Path path = Paths.get(".nrepl-port");
-        if (!Files.exists(path)) {
-            System.err.println("No .nrepl-port file found; use --port PORT");
-            System.exit(EXIT_CLIENT_ERROR);
-        }
-        return parsePort(Files.readString(path).trim());
-    }
-
-    private static int parsePort(String port) {
-        try {
-            return Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid port: " + port);
-            System.exit(EXIT_CLIENT_ERROR);
-            return 0;
-        }
-    }
-
-    private static boolean isDone(List<?> status) {
+   private static boolean isDone(List<?> status) {
         for (Object s : status) {
             if ("done".equals(string(s))) return true;
         }
