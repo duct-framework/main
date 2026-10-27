@@ -1,4 +1,4 @@
-{:paths ["src/clj" "resources"]
+{:paths ["src/clj" "resources" "target/classes"]
  :deps {org.clojure/clojure {:mvn/version "1.12.5"}
         org.clojure/tools.cli {:mvn/version "1.4.256"}
         org.clojure/java.classpath {:mvn/version "1.1.1"}
@@ -9,4 +9,12 @@
         dev.weavejester/hashp {:mvn/version "0.5.1"}
         nrepl/nrepl {:mvn/version "1.7.0"}
         cider/cider-nrepl {:mvn/version "0.62.2"}
-        lambdaisland/kaocha {:mvn/version "1.91.1392"}}}
+        lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+ :aliases
+ {:build {:deps {io.github.clojure/tools.build
+                 {:git/tag "v0.10.14" :git/sha "1176afd"}}
+          :ns-default build}}
+ :deps/prep-lib {:ensure "target/classes"
+                 :alias :build
+                 :fn compile-java}}
+                 
