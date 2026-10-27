@@ -26,17 +26,20 @@ public class Eval {
     static final int EXIT_TIMEOUT      = 124;
 
     static final int DEFAULT_TIMEOUT_SECS = 60;
+    static final int DEFAULT_MAX_CHARS    = 20000;
     static final int GRACE_PERIOD_MS      = 5000;
 
     static class Config {
         int port;
         String code;
         int timeout;
+        int maxChars;
 
-        Config(int port, String code, int timeout) {
+        Config(int port, String code, int timeout, int maxChars) {
             this.port = port;
             this.code = code;
             this.timeout = timeout;
+            this.maxChars = maxChars;
         }
     }
 
@@ -79,6 +82,17 @@ public class Eval {
         return 0;
     }
 
+    private static int parseMaxChars(String maxChars) {
+        try {
+            int chars = Integer.parseInt(maxChars);
+            if (chars > 0) return chars;
+        } catch (NumberFormatException e) {
+        }
+        System.err.println("Invalid max chars: " + maxChars);
+        System.exit(EXIT_CLIENT_ERROR);
+        return 0;
+    }
+
     private static String readCode(String code) throws IOException {
         return code.equals("-") ? readStdin() : code;
     }
@@ -97,7 +111,7 @@ public class Eval {
     private static void exitWithUsage(String message) {
         System.err.println(message);
         System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] " +
-                           "[--timeout SECS] [CODE | -]");
+                           "[--timeout SECS] [--max-chars N] [CODE | -]");
         System.exit(EXIT_CLIENT_ERROR);
     }
 
@@ -105,6 +119,7 @@ public class Eval {
         String port = null;
         String code = null;
         int timeout = DEFAULT_TIMEOUT_SECS;
+        int maxChars = DEFAULT_MAX_CHARS;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -113,6 +128,9 @@ public class Eval {
                     break;
                 case "--timeout":
                     timeout = parseTimeout(requireValue(args, ++i));
+                    break;
+                case "--max-chars":
+                    maxChars = parseMaxChars(requireValue(args, ++i));
                     break;
                 default:
                     if (args[i].startsWith("--")) {
@@ -127,7 +145,7 @@ public class Eval {
 
         return new Config(port == null ? readPortFile() : parsePort(port),
                           code == null ? readStdin() : readCode(code),
-                          timeout);
+                          timeout, maxChars);
     }
 
     private static int run(Config arguments) throws IOException {
@@ -137,8 +155,8 @@ public class Eval {
 
             String session = cloneSession(out, in);
             try {
-                return eval(socket, out, in, session,
-                            arguments.code, arguments.timeout);
+                return eval(socket, out, in, session, arguments.code,
+                            arguments.timeout, arguments.maxChars);
             } finally {
                 socket.setSoTimeout(GRACE_PERIOD_MS);
                 closeSession(out, in, session);
@@ -147,13 +165,14 @@ public class Eval {
     }
 
     private static int eval(Socket socket, OutputStream out, InputStream in,
-                            String session, String code, int timeout)
-        throws IOException {
+                            String session, String code, int timeout,
+                            int maxChars) throws IOException {
         Map<String, Object> request = new TreeMap<>();
         request.put("op", "eval");
         request.put("session", session);
         request.put("code", code);
         request.put("id", "1");
+        request.put("nrepl.middleware.print/quota", maxChars);
         writeBencode(out, request);
         out.flush();
 
@@ -178,6 +197,10 @@ public class Eval {
                 System.out.println(string(response.get("value")));
             }
             Object status = response.get("status");
+            if (hasStatus(status, "nrepl.middleware.print/truncated")) {
+                System.err.println("Value truncated to " + maxChars +
+                                   " characters; use --max-chars to change the limit");
+            }
             if (hasStatus(status, "eval-error")) {
                 exitCode = EXIT_EVAL_ERROR;
             }
@@ -276,6 +299,8 @@ public class Eval {
             byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
             out.write((bytes.length + ":").getBytes(StandardCharsets.US_ASCII));
             out.write(bytes);
+        } else if (value instanceof Integer) {
+            out.write(("i" + value + "e").getBytes(StandardCharsets.US_ASCII));
         } else if (value instanceof Map) {
             out.write('d');
             for (Map.Entry<?, ?> e : ((Map<?, ?>) value).entrySet()) {
