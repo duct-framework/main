@@ -16,8 +16,16 @@
 (defn printerr [& args]
   (binding [*err* *out*] (apply println args)))
 
+;; From JDK 22 we use Console.isTerminal.
+(defn- try-terminal? []
+  (try (eval '(.isTerminal (System/console)))
+       (catch IllegalArgumentException _ true)))
+
+(def interactive?
+  (delay (boolean (and (System/console) (try-terminal?)))))
+
 (def color?
-  (delay (not (boolean (System/getenv "NO_COLOR")))))
+  (delay (and (not (System/getenv "NO_COLOR")) @interactive?)))
 
 (defn colorize [color text]
   (if @color? (str color text reset-color) text))
@@ -51,11 +59,19 @@
     (.start thread)
     (fn [ret] (stop ret) (.join thread))))
 
+(defn- print-status [message status disappear?]
+  (when-not disappear?
+    (.write *err* (if (= :complete status) spinner-complete spinner-error))
+    (.write *err* (str message "\n"))
+    (.flush *err*)))
+
 (defn with-spinner-fn
   ([message f]
    (with-spinner-fn message f false))
   ([message f disappear?]
-   (let [stop-spinner (start-spinner message disappear?)]
+   (let [stop-spinner (if @interactive?
+                        (start-spinner message disappear?)
+                        #(print-status message % disappear?))]
      (try (let [ret (f)]
             (stop-spinner :complete) ret)
           (catch Exception ex
