@@ -97,7 +97,7 @@ public class Eval {
             try {
                 return eval(out, in, session, arguments.code);
             } finally {
-                closeSession(out, session);
+                closeSession(out, in, session);
             }
         }
     }
@@ -148,14 +148,23 @@ public class Eval {
         return string(response.get("new-session"));
     }
 
-    private static void closeSession(OutputStream out, String session)
-        throws IOException {
+    private static void closeSession(OutputStream out, InputStream in,
+                                     String session) throws IOException {
         Map<String, Object> request = new TreeMap<>();
         request.put("op", "close");
         request.put("session", session);
         request.put("id", "2");
         writeBencode(out, request);
         out.flush();
+
+        while (true) {
+            Map<?, ?> response = (Map<?, ?>) readBencode(in);
+            Object id = response.get("id");
+            if (id != null && "2".equals(string(id)) &&
+                hasStatus(response.get("status"), "done")) {
+                return;
+            }
+        }
     }
 
     private static void interrupt(OutputStream out, Map<?, ?> response)
