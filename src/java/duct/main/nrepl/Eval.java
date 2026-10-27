@@ -93,30 +93,79 @@ public class Eval {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             InputStream in   = new BufferedInputStream(socket.getInputStream());
 
-            Map<String, Object> request = new TreeMap<>();
-            request.put("op", "eval");
-            request.put("code", arguments.code);
-            request.put("id", "1");
-            writeBencode(out, request);
-            out.flush();
-
-            int exitCode = EXIT_SUCCESS;
-            while (true) {
-                Map<?, ?> response = (Map<?, ?>) readBencode(in);
-                printString(response.get("out"), System.out);
-                printString(response.get("err"), System.err);
-                if (response.containsKey("value")) {
-                    System.out.println(string(response.get("value")));
-                }
-                Object status = response.get("status");
-                if (hasStatus(status, "eval-error")) {
-                    exitCode = EXIT_EVAL_ERROR;
-                }
-                if (hasStatus(status, "done")) {
-                    return exitCode;
-                }
+            String session = cloneSession(out, in);
+            try {
+                return eval(out, in, session, arguments.code);
+            } finally {
+                closeSession(out, session);
             }
         }
+    }
+
+    private static int eval(OutputStream out, InputStream in, String session,
+                            String code) throws IOException {
+        Map<String, Object> request = new TreeMap<>();
+        request.put("op", "eval");
+        request.put("session", session);
+        request.put("code", code);
+        request.put("id", "1");
+        writeBencode(out, request);
+        out.flush();
+
+        int exitCode = EXIT_SUCCESS;
+        while (true) {
+            Map<?, ?> response = (Map<?, ?>) readBencode(in);
+            printString(response.get("out"), System.out);
+            printString(response.get("err"), System.err);
+            if (response.containsKey("value")) {
+                System.out.println(string(response.get("value")));
+            }
+            Object status = response.get("status");
+            if (hasStatus(status, "eval-error")) {
+                exitCode = EXIT_EVAL_ERROR;
+            }
+            if (hasStatus(status, "need-input")) {
+                System.err.println("Evaluation is waiting for input from *in*, " +
+                                   "which this client doesn't support");
+                interrupt(out, response);
+                return EXIT_CLIENT_ERROR;
+            }
+            if (hasStatus(status, "done")) {
+                return exitCode;
+            }
+        }
+    }
+
+    private static String cloneSession(OutputStream out, InputStream in)
+        throws IOException {
+        Map<String, Object> request = new TreeMap<>();
+        request.put("op", "clone");
+        request.put("id", "0");
+        writeBencode(out, request);
+        out.flush();
+
+        Map<?, ?> response = (Map<?, ?>) readBencode(in);
+        return string(response.get("new-session"));
+    }
+
+    private static void closeSession(OutputStream out, String session)
+        throws IOException {
+        Map<String, Object> request = new TreeMap<>();
+        request.put("op", "close");
+        request.put("session", session);
+        request.put("id", "2");
+        writeBencode(out, request);
+        out.flush();
+    }
+
+    private static void interrupt(OutputStream out, Map<?, ?> response)
+        throws IOException {
+        Map<String, Object> request = new TreeMap<>();
+        request.put("op", "interrupt");
+        request.put("session", string(response.get("session")));
+        request.put("interrupt-id", string(response.get("id")));
+        writeBencode(out, request);
+        out.flush();
     }
 
     private static boolean hasStatus(Object status, String value) {
