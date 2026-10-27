@@ -18,6 +18,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class Eval {
+    static final int EXIT_SUCCESS      = 0;
+    static final int EXIT_CLIENT_ERROR = 1;
+    static final int EXIT_IO_ERROR     = 2;
+
     static class Arguments {
         int port;
         String code;
@@ -28,8 +32,14 @@ public class Eval {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        run(parseArguments(args));
+    public static void main(String[] args) {
+        try {
+            run(parseArguments(args));
+            System.exit(EXIT_SUCCESS);
+        } catch (IOException e) {
+            System.err.println("I/O error: " + e.getMessage());
+            System.exit(EXIT_IO_ERROR);
+        }
     }
 
     private static Arguments parseArguments(String[] args) throws IOException {
@@ -41,7 +51,7 @@ public class Eval {
         }
         
         System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] CODE");
-        System.exit(2);
+        System.exit(EXIT_CLIENT_ERROR);
         return null;
     }
 
@@ -76,7 +86,7 @@ public class Eval {
         Path path = Paths.get(".nrepl-port");
         if (!Files.exists(path)) {
             System.err.println("No .nrepl-port file found; use --port PORT");
-            System.exit(2);
+            System.exit(EXIT_CLIENT_ERROR);
         }
         return parsePort(Files.readString(path).trim());
     }
@@ -86,7 +96,7 @@ public class Eval {
             return Integer.parseInt(port);
         } catch (NumberFormatException e) {
             System.err.println("Invalid port: " + port);
-            System.exit(2);
+            System.exit(EXIT_CLIENT_ERROR);
             return 0;
         }
     }
