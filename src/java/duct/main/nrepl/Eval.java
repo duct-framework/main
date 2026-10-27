@@ -19,8 +19,9 @@ import java.util.TreeMap;
 
 public class Eval {
     static final int EXIT_SUCCESS      = 0;
-    static final int EXIT_CLIENT_ERROR = 1;
-    static final int EXIT_IO_ERROR     = 2;
+    static final int EXIT_EVAL_ERROR   = 1;
+    static final int EXIT_CLIENT_ERROR = 2;
+    static final int EXIT_IO_ERROR     = 3;
 
     static class Config {
         int port;
@@ -34,8 +35,7 @@ public class Eval {
 
     public static void main(String[] args) {
         try {
-            run(parseArguments(args));
-            System.exit(EXIT_SUCCESS);
+            System.exit(run(parseArguments(args)));
         } catch (IOException e) {
             System.err.println("I/O error: " + e.getMessage());
             System.exit(EXIT_IO_ERROR);
@@ -74,7 +74,7 @@ public class Eval {
         return null;
     }
 
-    private static void run(Config arguments) throws IOException {
+    private static int run(Config arguments) throws IOException {
         try (Socket socket = new Socket("localhost", arguments.port)) {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             InputStream in   = new BufferedInputStream(socket.getInputStream());
@@ -86,6 +86,7 @@ public class Eval {
             writeBencode(out, request);
             out.flush();
 
+            int exitCode = EXIT_SUCCESS;
             while (true) {
                 Map<?, ?> response = (Map<?, ?>) readBencode(in);
                 printString(response.get("out"), System.out);
@@ -94,16 +95,21 @@ public class Eval {
                     System.out.println(string(response.get("value")));
                 }
                 Object status = response.get("status");
-                if (status instanceof List && isDone((List<?>) status)) {
-                    break;
+                if (hasStatus(status, "eval-error")) {
+                    exitCode = EXIT_EVAL_ERROR;
+                }
+                if (hasStatus(status, "done")) {
+                    return exitCode;
                 }
             }
         }
     }
 
-   private static boolean isDone(List<?> status) {
-        for (Object s : status) {
-            if ("done".equals(string(s))) return true;
+    private static boolean hasStatus(Object status, String value) {
+        if (status instanceof List) {
+            for (Object s : (List<?>) status) {
+                if (value.equals(string(s))) return true;
+            }
         }
         return false;
     }
