@@ -7,6 +7,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
@@ -28,18 +29,21 @@ public class Eval {
     static final int DEFAULT_TIMEOUT_SECS = 60;
     static final int DEFAULT_MAX_CHARS    = 20000;
     static final int GRACE_PERIOD_MS      = 5000;
+    static final int WAIT_INTERVAL_MS     = 100;
 
     static class Config {
-        int port;
+        Integer port;
         String code;
         int timeout;
         int maxChars;
+        int wait;
 
-        Config(int port, String code, int timeout, int maxChars) {
+        Config(Integer port, String code, int timeout, int maxChars, int wait) {
             this.port = port;
             this.code = code;
             this.timeout = timeout;
             this.maxChars = maxChars;
+            this.wait = wait;
         }
     }
 
@@ -52,13 +56,12 @@ public class Eval {
         }
     }
 
-    private static int readPortFile() throws IOException {
+    private static Integer readPortFile() throws IOException {
         Path path = Paths.get(".nrepl-port");
-        if (!Files.exists(path)) {
-            System.err.println("No .nrepl-port file found; use --port PORT");
-            System.exit(EXIT_CLIENT_ERROR);
-        }
-        return parsePort(Files.readString(path).trim());
+        if (!Files.exists(path)) return null;
+        // The file may exist before the port has been written to it.
+        String port = Files.readString(path).trim();
+        return port.isEmpty() ? null : parsePort(port);
     }
 
     private static int parsePort(String port) {
@@ -93,6 +96,17 @@ public class Eval {
         return 0;
     }
 
+    private static int parseWait(String wait) {
+        try {
+            int secs = Integer.parseInt(wait);
+            if (secs > 0) return secs;
+        } catch (NumberFormatException e) {
+        }
+        System.err.println("Invalid wait: " + wait);
+        System.exit(EXIT_CLIENT_ERROR);
+        return 0;
+    }
+
     private static String readCode(String code) throws IOException {
         return code.equals("-") ? readStdin() : code;
     }
@@ -111,7 +125,8 @@ public class Eval {
     private static void exitWithUsage(String message) {
         System.err.println(message);
         System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] " +
-                           "[--timeout SECS] [--max-chars N] [CODE | -]");
+                           "[--timeout SECS] [--max-chars N] [--wait SECS] " +
+                           "[CODE | -]");
         System.exit(EXIT_CLIENT_ERROR);
     }
 
@@ -120,6 +135,7 @@ public class Eval {
         String code = null;
         int timeout = DEFAULT_TIMEOUT_SECS;
         int maxChars = DEFAULT_MAX_CHARS;
+        int wait = 0;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -132,6 +148,9 @@ public class Eval {
                 case "--max-chars":
                     maxChars = parseMaxChars(requireValue(args, ++i));
                     break;
+                case "--wait":
+                    wait = parseWait(requireValue(args, ++i));
+                    break;
                 default:
                     if (args[i].startsWith("--")) {
                         exitWithUsage("Unknown option: " + args[i]);
@@ -143,13 +162,13 @@ public class Eval {
             }
         }
 
-        return new Config(port == null ? readPortFile() : parsePort(port),
+        return new Config(port == null ? null : parsePort(port),
                           code == null ? readStdin() : readCode(code),
-                          timeout, maxChars);
+                          timeout, maxChars, wait);
     }
 
     private static int run(Config arguments) throws IOException {
-        try (Socket socket = new Socket("localhost", arguments.port)) {
+        try (Socket socket = connect(arguments.port, arguments.wait)) {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             InputStream in   = new BufferedInputStream(socket.getInputStream());
 
@@ -160,6 +179,33 @@ public class Eval {
             } finally {
                 socket.setSoTimeout(GRACE_PERIOD_MS);
                 closeSession(out, in, session);
+            }
+        }
+    }
+
+    private static Socket connect(Integer port, int wait) throws IOException {
+        long deadline = System.nanoTime() + wait * 1_000_000_000L;
+        while (true) {
+            Integer currentPort = port != null ? port : readPortFile();
+            if (currentPort != null) {
+                try {
+                    return new Socket("localhost", currentPort);
+                } catch (ConnectException e) {
+                    if (wait == 0) throw e;
+                }
+            } else if (wait == 0) {
+                System.err.println("No .nrepl-port file found; use --port PORT");
+                System.exit(EXIT_CLIENT_ERROR);
+            }
+            if (System.nanoTime() >= deadline) {
+                System.err.println("Timed out waiting for nREPL server after " +
+                                   wait + "s");
+                System.exit(EXIT_CLIENT_ERROR);
+            }
+            try {
+                Thread.sleep(WAIT_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
     }

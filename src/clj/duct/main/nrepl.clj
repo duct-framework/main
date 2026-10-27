@@ -49,8 +49,8 @@
                 {:handler      (nrepl-handler options)
                  :transport-fn bencode-transport-no-delay})]
     (println "nREPL server started on port" (:port server))
-    (cli/save-port-file server {})
-    (save-eval-classpath-file)
     (doto server stop-nrepl-on-shutdown)
     (when-not (:main options)
-      (user/setup-user-ns load-config options))))
+      (user/setup-user-ns load-config options))
+    (cli/save-port-file server {})
+    (save-eval-classpath-file)))
