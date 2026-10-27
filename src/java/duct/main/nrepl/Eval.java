@@ -61,15 +61,29 @@ public class Eval {
         }
     }
 
+    private static String readCode(String code) throws IOException {
+        return code.equals("-") ? readStdin() : code;
+    }
+
+    private static String readStdin() throws IOException {
+        return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
     private static Config parseArguments(String[] args) throws IOException {
         if (args.length == 3 && args[0].equals("--port")) {
-            return new Config(parsePort(args[1]), args[2]);
+            return new Config(parsePort(args[1]), readCode(args[2]));
+        }
+        if (args.length == 2 && args[0].equals("--port")) {
+            return new Config(parsePort(args[1]), readStdin());
         }
         if (args.length == 1) {
-            return new Config(readPortFile(), args[0]);
+            return new Config(readPortFile(), readCode(args[0]));
+        }
+        if (args.length == 0) {
+            return new Config(readPortFile(), readStdin());
         }
         
-        System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] CODE");
+        System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] [CODE | -]");
         System.exit(EXIT_CLIENT_ERROR);
         return null;
     }
