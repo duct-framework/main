@@ -69,23 +69,41 @@ public class Eval {
         return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
     }
 
-    private static Config parseArguments(String[] args) throws IOException {
-        if (args.length == 3 && args[0].equals("--port")) {
-            return new Config(parsePort(args[1]), readCode(args[2]));
+    private static String requireValue(String[] args, int i) {
+        if (i >= args.length) {
+            exitWithUsage("Missing value for " + args[i - 1]);
         }
-        if (args.length == 2 && args[0].equals("--port")) {
-            return new Config(parsePort(args[1]), readStdin());
-        }
-        if (args.length == 1) {
-            return new Config(readPortFile(), readCode(args[0]));
-        }
-        if (args.length == 0) {
-            return new Config(readPortFile(), readStdin());
-        }
-        
+        return args[i];
+    }
+
+    private static void exitWithUsage(String message) {
+        System.err.println(message);
         System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] [CODE | -]");
         System.exit(EXIT_CLIENT_ERROR);
-        return null;
+    }
+
+    private static Config parseArguments(String[] args) throws IOException {
+        String port = null;
+        String code = null;
+
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "--port":
+                    port = requireValue(args, ++i);
+                    break;
+                default:
+                    if (args[i].startsWith("--")) {
+                        exitWithUsage("Unknown option: " + args[i]);
+                    }
+                    if (code != null) {
+                        exitWithUsage("Unexpected argument: " + args[i]);
+                    }
+                    code = args[i];
+            }
+        }
+
+        return new Config(port == null ? readPortFile() : parsePort(port),
+                          code == null ? readStdin() : readCode(code));
     }
 
     private static int run(Config arguments) throws IOException {
