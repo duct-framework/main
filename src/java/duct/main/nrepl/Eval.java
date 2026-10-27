@@ -34,7 +34,7 @@ public class Eval {
 
     private static Arguments parseArguments(String[] args) throws IOException {
         if (args.length == 3 && args[0].equals("--port")) {
-            return new Arguments(Integer.parseInt(args[1]), args[2]);
+            return new Arguments(parsePort(args[1]), args[2]);
         }
         if (args.length == 1) {
             return new Arguments(readPortFile(), args[0]);
@@ -78,7 +78,17 @@ public class Eval {
             System.err.println("No .nrepl-port file found; use --port PORT");
             System.exit(2);
         }
-        return Integer.parseInt(Files.readString(path).trim());
+        return parsePort(Files.readString(path).trim());
+    }
+
+    private static int parsePort(String port) {
+        try {
+            return Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid port: " + port);
+            System.exit(2);
+            return 0;
+        }
     }
 
     private static boolean isDone(List<?> status) {
