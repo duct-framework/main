@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,14 +23,20 @@ public class Eval {
     static final int EXIT_EVAL_ERROR   = 1;
     static final int EXIT_CLIENT_ERROR = 2;
     static final int EXIT_IO_ERROR     = 3;
+    static final int EXIT_TIMEOUT      = 124;
+
+    static final int DEFAULT_TIMEOUT_SECS = 60;
+    static final int GRACE_PERIOD_MS      = 5000;
 
     static class Config {
         int port;
         String code;
+        int timeout;
 
-        Config(int port, String code) {
+        Config(int port, String code, int timeout) {
             this.port = port;
             this.code = code;
+            this.timeout = timeout;
         }
     }
 
@@ -61,6 +68,17 @@ public class Eval {
         }
     }
 
+    private static int parseTimeout(String timeout) {
+        try {
+            int secs = Integer.parseInt(timeout);
+            if (secs > 0) return secs;
+        } catch (NumberFormatException e) {
+        }
+        System.err.println("Invalid timeout: " + timeout);
+        System.exit(EXIT_CLIENT_ERROR);
+        return 0;
+    }
+
     private static String readCode(String code) throws IOException {
         return code.equals("-") ? readStdin() : code;
     }
@@ -78,18 +96,23 @@ public class Eval {
 
     private static void exitWithUsage(String message) {
         System.err.println(message);
-        System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] [CODE | -]");
+        System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] " +
+                           "[--timeout SECS] [CODE | -]");
         System.exit(EXIT_CLIENT_ERROR);
     }
 
     private static Config parseArguments(String[] args) throws IOException {
         String port = null;
         String code = null;
+        int timeout = DEFAULT_TIMEOUT_SECS;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--port":
                     port = requireValue(args, ++i);
+                    break;
+                case "--timeout":
+                    timeout = parseTimeout(requireValue(args, ++i));
                     break;
                 default:
                     if (args[i].startsWith("--")) {
@@ -103,7 +126,8 @@ public class Eval {
         }
 
         return new Config(port == null ? readPortFile() : parsePort(port),
-                          code == null ? readStdin() : readCode(code));
+                          code == null ? readStdin() : readCode(code),
+                          timeout);
     }
 
     private static int run(Config arguments) throws IOException {
@@ -113,15 +137,18 @@ public class Eval {
 
             String session = cloneSession(out, in);
             try {
-                return eval(out, in, session, arguments.code);
+                return eval(socket, out, in, session,
+                            arguments.code, arguments.timeout);
             } finally {
+                socket.setSoTimeout(GRACE_PERIOD_MS);
                 closeSession(out, in, session);
             }
         }
     }
 
-    private static int eval(OutputStream out, InputStream in, String session,
-                            String code) throws IOException {
+    private static int eval(Socket socket, OutputStream out, InputStream in,
+                            String session, String code, int timeout)
+        throws IOException {
         Map<String, Object> request = new TreeMap<>();
         request.put("op", "eval");
         request.put("session", session);
@@ -130,9 +157,21 @@ public class Eval {
         writeBencode(out, request);
         out.flush();
 
+        long deadline = System.nanoTime() + timeout * 1_000_000_000L;
         int exitCode = EXIT_SUCCESS;
         while (true) {
-            Map<?, ?> response = (Map<?, ?>) readBencode(in);
+            Map<?, ?> response;
+            try {
+                long remainingMs = (deadline - System.nanoTime()) / 1_000_000;
+                socket.setSoTimeout((int) Math.max(1, remainingMs));
+                response = (Map<?, ?>) readBencode(in);
+            } catch (SocketTimeoutException e) {
+                System.err.println("Evaluation timed out after " + timeout + "s");
+                interrupt(socket, out, in, session);
+                System.err.println("Evaluation was interrupted, but if it ignores " +
+                                   "interrupts it may still be running on the server");
+                return EXIT_TIMEOUT;
+            }
             printString(response.get("out"), System.out);
             printString(response.get("err"), System.err);
             if (response.containsKey("value")) {
@@ -145,7 +184,7 @@ public class Eval {
             if (hasStatus(status, "need-input")) {
                 System.err.println("Evaluation is waiting for input from *in*, " +
                                    "which this client doesn't support");
-                interrupt(out, response);
+                interrupt(socket, out, in, session);
                 return EXIT_CLIENT_ERROR;
             }
             if (hasStatus(status, "done")) {
@@ -175,24 +214,40 @@ public class Eval {
         writeBencode(out, request);
         out.flush();
 
+        try {
+            waitForDone(in, "2");
+        } catch (SocketTimeoutException e) {
+            // The server didn't confirm the close; give up waiting.
+        }
+    }
+
+    private static void interrupt(Socket socket, OutputStream out, InputStream in,
+                                  String session) throws IOException {
+        Map<String, Object> request = new TreeMap<>();
+        request.put("op", "interrupt");
+        request.put("session", session);
+        request.put("interrupt-id", "1");
+        writeBencode(out, request);
+        out.flush();
+
+        try {
+            socket.setSoTimeout(GRACE_PERIOD_MS);
+            waitForDone(in, "1");
+        } catch (SocketTimeoutException e) {
+            System.err.println("Evaluation did not stop after being interrupted, " +
+                               "and may still be running on the server");
+        }
+    }
+
+    private static void waitForDone(InputStream in, String id) throws IOException {
         while (true) {
             Map<?, ?> response = (Map<?, ?>) readBencode(in);
-            Object id = response.get("id");
-            if (id != null && "2".equals(string(id)) &&
+            Object responseId = response.get("id");
+            if (responseId != null && id.equals(string(responseId)) &&
                 hasStatus(response.get("status"), "done")) {
                 return;
             }
         }
-    }
-
-    private static void interrupt(OutputStream out, Map<?, ?> response)
-        throws IOException {
-        Map<String, Object> request = new TreeMap<>();
-        request.put("op", "interrupt");
-        request.put("session", string(response.get("session")));
-        request.put("interrupt-id", string(response.get("id")));
-        writeBencode(out, request);
-        out.flush();
     }
 
     private static boolean hasStatus(Object status, String value) {
