@@ -18,29 +18,41 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class Eval {
-    public static void main(String[] args) throws IOException {
+    static class Arguments {
         int port;
         String code;
 
-        if (args.length == 3 && args[0].equals("--port")) {
-            port = Integer.parseInt(args[1]);
-            code = args[2];
-        } else if (args.length == 1) {
-            port = readPortFile();
-            code = args[0];
-        } else {
-            System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] CODE");
-            System.exit(2);
-            return;
+        Arguments(int port, String code) {
+            this.port = port;
+            this.code = code;
         }
+    }
 
-        try (Socket socket = new Socket("localhost", port)) {
+    public static void main(String[] args) throws IOException {
+        run(parseArguments(args));
+    }
+
+    private static Arguments parseArguments(String[] args) throws IOException {
+        if (args.length == 3 && args[0].equals("--port")) {
+            return new Arguments(Integer.parseInt(args[1]), args[2]);
+        }
+        if (args.length == 1) {
+            return new Arguments(readPortFile(), args[0]);
+        }
+        
+        System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] CODE");
+        System.exit(2);
+        return null;
+    }
+
+    private static void run(Arguments arguments) throws IOException {
+        try (Socket socket = new Socket("localhost", arguments.port)) {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             InputStream in   = new BufferedInputStream(socket.getInputStream());
 
             Map<String, Object> request = new TreeMap<>();
             request.put("op", "eval");
-            request.put("code", code);
+            request.put("code", arguments.code);
             request.put("id", "1");
             writeBencode(out, request);
             out.flush();
