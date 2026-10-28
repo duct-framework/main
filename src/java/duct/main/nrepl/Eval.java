@@ -38,7 +38,8 @@ public class Eval {
         "  (prn (-> (Throwable->map *e)" +
         "           (dissoc :trace :data)" +
         "           (update :via (partial mapv #(cond-> % (:data %)" +
-        "                                         (update :data dissoc :system)))))))";
+        "                                         (update :data dissoc " +
+        "                                                 :function :system)))))))";
 
     static class Config {
         Integer port;
