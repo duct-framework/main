@@ -192,15 +192,14 @@ public class Eval {
                           timeout, maxChars, wait);
     }
 
-    private static int run(Config arguments) throws IOException {
-        try (Socket socket = connect(arguments.port, arguments.wait)) {
+    private static int run(Config config) throws IOException {
+        try (Socket socket = connect(config.port, config.wait)) {
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             InputStream in   = new BufferedInputStream(socket.getInputStream());
 
             String session = cloneSession(out, in);
             try {
-                int exitCode = eval(socket, out, in, session, arguments.code,
-                                    arguments.timeout, arguments.maxChars);
+                int exitCode = eval(socket, out, in, session, config);
                 if (exitCode == EXIT_EVAL_ERROR) {
                     socket.setSoTimeout(GRACE_PERIOD_MS);
                     printErrorDetails(out, in, session);
@@ -254,18 +253,17 @@ public class Eval {
     }
 
     private static int eval(Socket socket, OutputStream out, InputStream in,
-                            String session, String code, int timeout,
-                            int maxChars) throws IOException {
+                            String session, Config config) throws IOException {
         Map<String, Object> request = new TreeMap<>();
         request.put("op", "eval");
         request.put("session", session);
-        request.put("code", code);
+        request.put("code", config.code);
         request.put("id", "1");
-        request.put("nrepl.middleware.print/quota", maxChars);
+        request.put("nrepl.middleware.print/quota", config.maxChars);
         writeBencode(out, request);
         out.flush();
 
-        long deadline = System.nanoTime() + timeout * 1_000_000_000L;
+        long deadline = System.nanoTime() + config.timeout * 1_000_000_000L;
         int exitCode = EXIT_SUCCESS;
         while (true) {
             Map<?, ?> response;
@@ -274,7 +272,8 @@ public class Eval {
                 socket.setSoTimeout((int) Math.max(1, remainingMs));
                 response = (Map<?, ?>) readBencode(in);
             } catch (SocketTimeoutException e) {
-                System.err.println("Evaluation timed out after " + timeout + "s");
+                System.err.println("Evaluation timed out after " +
+                                   config.timeout + "s");
                 interrupt(socket, out, in, session);
                 System.err.println("Evaluation was interrupted, but if it ignores " +
                                    "interrupts it may still be running on the server");
@@ -287,7 +286,7 @@ public class Eval {
             }
             Object status = response.get("status");
             if (hasStatus(status, "nrepl.middleware.print/truncated")) {
-                System.err.println("Value truncated to " + maxChars +
+                System.err.println("Value truncated to " + config.maxChars +
                                    " characters; use --max-chars to change the limit");
             }
             if (hasStatus(status, "eval-error")) {
