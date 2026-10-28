@@ -191,7 +191,10 @@ public class Eval {
                 try {
                     return new Socket("localhost", currentPort);
                 } catch (ConnectException e) {
-                    if (wait == 0) throw e;
+                    if (wait == 0) {
+                        printConnectError(currentPort, port == null);
+                        System.exit(EXIT_IO_ERROR);
+                    }
                 }
             } else if (wait == 0) {
                 System.err.println("No .nrepl-port file found; use --port PORT");
@@ -207,6 +210,16 @@ public class Eval {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    private static void printConnectError(int port, boolean fromPortFile) {
+        System.err.println("Could not connect to nREPL server on port " + port);
+        if (fromPortFile) {
+            System.err.println("The .nrepl-port file may be left over from a " +
+                               "server that has stopped");
+        } else {
+            System.err.println("If the server is still starting, use --wait SECS");
         }
     }
 
