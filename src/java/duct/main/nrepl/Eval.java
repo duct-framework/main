@@ -117,12 +117,39 @@ public class Eval {
         return args[i];
     }
 
+    private static final String USAGE =
+        "Usage: duct.main.nrepl.Eval [--port PORT] [--timeout SECS] " +
+        "[--max-chars N] [--wait SECS] [CODE | -]";
+
     private static void exitWithUsage(String message) {
         System.err.println(message);
-        System.err.println("Usage: duct.main.nrepl.Eval [--port PORT] " +
-                           "[--timeout SECS] [--max-chars N] [--wait SECS] " +
-                           "[CODE | -]");
+        System.err.println(USAGE);
         System.exit(EXIT_CLIENT_ERROR);
+    }
+
+    private static void exitWithHelp() {
+        System.out.println(
+            USAGE + "\n" +
+            "\n" +
+            "Evaluates Clojure code on an nREPL server. The code is read from\n" +
+            "the CODE argument, or from stdin if CODE is - or omitted.\n" +
+            "\n" +
+            "Options:\n" +
+            "  --port PORT     nREPL server port (default: read from .nrepl-port)\n" +
+            "  --timeout SECS  interrupt evaluation after SECS seconds " +
+            "(default: " + DEFAULT_TIMEOUT_SECS + ")\n" +
+            "  --max-chars N   truncate printed values to N characters " +
+            "(default: " + DEFAULT_MAX_CHARS + ")\n" +
+            "  --wait SECS     wait up to SECS seconds for the server to start\n" +
+            "  --help          show this help\n" +
+            "\n" +
+            "Exit codes:\n" +
+            "  " + EXIT_SUCCESS + "    success\n" +
+            "  " + EXIT_EVAL_ERROR + "    evaluation threw an exception\n" +
+            "  " + EXIT_CLIENT_ERROR + "    invalid arguments, or server not found\n" +
+            "  " + EXIT_IO_ERROR + "    I/O error, such as a refused connection\n" +
+            "  " + EXIT_TIMEOUT + "  evaluation timed out");
+        System.exit(EXIT_SUCCESS);
     }
 
     private static Config parseArguments(String[] args) throws IOException {
@@ -145,6 +172,9 @@ public class Eval {
                     break;
                 case "--wait":
                     wait = parseWait(requireValue(args, ++i));
+                    break;
+                case "--help":
+                    exitWithHelp();
                     break;
                 default:
                     if (args[i].startsWith("--")) {
