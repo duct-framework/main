@@ -31,6 +31,15 @@ public class Eval {
     static final int GRACE_PERIOD_MS      = 5000;
     static final int WAIT_INTERVAL_MS     = 100;
 
+    // Evaluated after an error to print the cause and ex-data of *e as edn.
+    // Integrant's :system key is removed, as it's too large
+    static final String ERROR_DETAILS_CODE =
+        "(binding [*print-length* 10, *print-level* 8]" +
+        "  (prn (-> (Throwable->map *e)" +
+        "           (dissoc :trace :data)" +
+        "           (update :via (partial mapv #(cond-> % (:data %)" +
+        "                                         (update :data dissoc :system)))))))";
+
     static class Config {
         Integer port;
         String code;
@@ -159,8 +168,13 @@ public class Eval {
 
             String session = cloneSession(out, in);
             try {
-                return eval(socket, out, in, session, arguments.code,
-                            arguments.timeout, arguments.maxChars);
+                int exitCode = eval(socket, out, in, session, arguments.code,
+                                    arguments.timeout, arguments.maxChars);
+                if (exitCode == EXIT_EVAL_ERROR) {
+                    socket.setSoTimeout(GRACE_PERIOD_MS);
+                    printErrorDetails(out, in, session);
+                }
+                return exitCode;
             } finally {
                 socket.setSoTimeout(GRACE_PERIOD_MS);
                 closeSession(out, in, session);
@@ -244,6 +258,30 @@ public class Eval {
             if (hasStatus(status, "done")) {
                 return exitCode;
             }
+        }
+    }
+
+    private static void printErrorDetails(OutputStream out, InputStream in,
+                                          String session) throws IOException {
+        Map<String, Object> request = new TreeMap<>();
+        request.put("op", "eval");
+        request.put("session", session);
+        request.put("code", ERROR_DETAILS_CODE);
+        request.put("id", "3");
+        writeBencode(out, request);
+        out.flush();
+
+        try {
+            while (true) {
+                Map<?, ?> response = (Map<?, ?>) readBencode(in);
+                printString(response.get("out"), System.err);
+                printString(response.get("err"), System.err);
+                if (hasStatus(response.get("status"), "done")) {
+                    return;
+                }
+            }
+        } catch (SocketTimeoutException e) {
+            // The details are optional; give up if they take too long.
         }
     }
 
